@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="BluetoothGpioController.Client/BluetoothGpioController.Client.csproj">
+    <Deploy />
+  </Project>
+  <Project Path="BluetoothGpioController/BluetoothGpioController.csproj" />
+</Solution>
