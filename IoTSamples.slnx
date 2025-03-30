@@ -1,6 +1,9 @@
 <Solution>
-  <Project Path="BluetoothGpioController.Client/BluetoothGpioController.Client.csproj">
+  <Folder Name="/Solution Items/" Id="8ec462fd-d22e-90a8-e5ce-7e832ba40c5d">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="BluetoothGpioController/BluetoothGpioController.Client/BluetoothGpioController.Client.csproj">
     <Deploy />
   </Project>
-  <Project Path="BluetoothGpioController/BluetoothGpioController.csproj" />
+  <Project Path="BluetoothGpioController/BluetoothGpioController/BluetoothGpioController.csproj" />
 </Solution>
