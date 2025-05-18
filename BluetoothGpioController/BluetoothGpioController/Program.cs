@@ -16,6 +16,8 @@ using BluetoothGpioController;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
+builder.Services.Configure<AppSettings>(builder.Configuration);
+builder.Services.AddLogging(b => b.AddConsole());
 
 var host = builder.Build();
 host.Run();

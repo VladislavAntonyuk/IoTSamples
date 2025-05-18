@@ -1,8 +1,9 @@
 using DotnetBleServer.Core;
+using Microsoft.Extensions.Options;
 
 namespace BluetoothGpioController;
 
-public class Worker(ILogger<Worker> logger) : BackgroundService
+public class Worker(ILogger<Worker> logger, IOptions<AppSettings> options) : BackgroundService
 {
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
@@ -19,7 +20,7 @@ public class Worker(ILogger<Worker> logger) : BackgroundService
 		}
 
 		await context.RegisterAdvertisement("Bluetooth Gpio Controller");
-		await context.RegisterGattApplication(logger);
+		await context.RegisterGattApplication(logger, options);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{

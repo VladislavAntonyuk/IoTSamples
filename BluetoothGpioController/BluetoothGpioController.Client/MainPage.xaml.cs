@@ -29,8 +29,8 @@ public partial class MainPage : ContentPage
 				await adapter.ConnectToDeviceAsync(a.Device);
 				var service = await a.Device.GetServiceAsync(Guid.Parse("12345678-1234-5678-1234-56789abcdef0"));
 				var characteristic = await service.GetCharacteristicAsync(Guid.Parse("12345678-1234-5678-1234-56789abcdef1"));
-				await characteristic.WriteAsync(Encoding.Default.GetBytes("10;Output;1"));
-				await characteristic.WriteAsync(Encoding.Default.GetBytes("10;Input;0"));
+				await characteristic.WriteAsync(Encoding.Default.GetBytes("10;OUTPUT;1;password"));
+				await characteristic.WriteAsync(Encoding.Default.GetBytes("10;INPUT;0;password"));
 			}
 			catch (Exception e)
 			{
