@@ -12,6 +12,8 @@ using BluetoothGpioController;
  * 8. connect <MAC>
  * 9. scp "linux-arm64/*.*" vladislav@raspberrypi-zero-2w.local:/home/vladislav/Projects/BluetoothGpioController
  * 10. ssh vladislav@raspberrypi-zero-2w.local
+ * 11. chmod +x /home/vladislav/Projects/BluetoothGpioController/BluetoothGpioController
+ * 12. chmod +x /home/vladislav/Projects/BluetoothGpioController/BluetoothGpioController.dll
  */
 
 var builder = Host.CreateApplicationBuilder(args);

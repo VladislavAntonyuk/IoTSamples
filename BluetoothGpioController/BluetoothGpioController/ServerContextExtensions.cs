@@ -24,7 +24,7 @@ public static class ServerContextExtensions
 		await new AdvertisingManager(context).CreateAdvertisement(advertisementProperties);
 	}
 
-	public static async Task RegisterGattApplication(this ServerContext context, ILogger logger, IOptions<AppSettings> options)
+	public static async Task RegisterGattApplication(this ServerContext context, ILoggerFactory loggerFactory, IOptions<AppSettings> options)
 	{
 		var gattServiceDescription = new GattServiceDescription
 		{
@@ -32,13 +32,13 @@ public static class ServerContextExtensions
 			Primary = true
 		};
 
-		var gpioControllerGattCharacteristicDescription = new GpioControllerGattCharacteristicDescription(logger, options)
+		var gattCharacteristicDescription = new GattCharacteristicDescription(loggerFactory, options)
 		{
 			UUID = "12345678-1234-5678-1234-56789abcdef1",
 			Flags = CharacteristicFlags.Notify
 		};
 
-		var grioControllerGattDescriptorDescription = new GattDescriptorDescription
+		var gattDescriptorDescription = new GattDescriptorDescription
 		{
 			Value = [(byte)'t'],
 			UUID = "12345678-1234-5678-1234-56789abcdef2",
@@ -48,7 +48,7 @@ public static class ServerContextExtensions
 		var gab = new GattApplicationBuilder();
 		gab
 			.AddService(gattServiceDescription)
-			.WithCharacteristic(gpioControllerGattCharacteristicDescription, [grioControllerGattDescriptorDescription]);
+			.WithCharacteristic(gattCharacteristicDescription, [gattDescriptorDescription]);
 
 		await new GattApplicationManager(context).RegisterGattApplication(gab.BuildServiceDescriptions());
 	}

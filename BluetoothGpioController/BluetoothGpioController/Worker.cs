@@ -3,13 +3,14 @@ using Microsoft.Extensions.Options;
 
 namespace BluetoothGpioController;
 
-public class Worker(ILogger<Worker> logger, IOptions<AppSettings> options) : BackgroundService
+public class Worker(ILoggerFactory loggerFactory, IOptions<AppSettings> options) : BackgroundService
 {
 	protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 	{
 		using var context = new ServerContext();
 		await context.ConnectAndSetDefaultAdapter();
 
+		var logger = loggerFactory.CreateLogger<Worker>();
 		logger.LogInformation("Using bluetooth adapter: {Adapter}", context.Adapter.ObjectPath);
 		await context.Adapter.SetPoweredAsync(true);
 
@@ -20,7 +21,7 @@ public class Worker(ILogger<Worker> logger, IOptions<AppSettings> options) : Bac
 		}
 
 		await context.RegisterAdvertisement("Bluetooth Gpio Controller");
-		await context.RegisterGattApplication(logger, options);
+		await context.RegisterGattApplication(loggerFactory, options);
 
 		while (!stoppingToken.IsCancellationRequested)
 		{

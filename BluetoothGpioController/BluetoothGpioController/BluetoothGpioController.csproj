@@ -5,12 +5,16 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<InvariantGlobalization>true</InvariantGlobalization>
+
 		<PublishAot>false</PublishAot>
+		<PublishSingleFile>false</PublishSingleFile>
+		<SelfContained>false</SelfContained>
+		<RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="BluetoothLE.Server.Linux" Version="1.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
-		<PackageReference Include="System.Device.Gpio" Version="3.2.0" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.5" />
+		<PackageReference Include="System.Device.Gpio" Version="4.0.1" />
 	</ItemGroup>
 </Project>
