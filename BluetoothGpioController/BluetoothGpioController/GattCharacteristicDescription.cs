@@ -10,6 +10,7 @@ internal class GattCharacteristicDescription(ILoggerFactory loggerFactory, IOpti
     private const string help = """
                                 PASSWORD;GPIO;PIN;MODE;VALUE
                                 PASSWORD;REBOOT
+                                PASSWORD;SHUTDOWN
                                 """;
     
     private readonly ILogger<GattCharacteristicDescription> _logger = loggerFactory.CreateLogger<GattCharacteristicDescription>();

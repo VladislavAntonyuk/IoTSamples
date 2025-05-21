@@ -16,10 +16,18 @@ using BluetoothGpioController;
  * 12. chmod +x /home/vladislav/Projects/BluetoothGpioController/BluetoothGpioController.dll
  */
 
+const string logFilePath = "Logs.txt";
+if (File.Exists(logFilePath))
+{
+    File.Delete(logFilePath);
+}
+
 var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddHostedService<Worker>();
 builder.Services.Configure<AppSettings>(builder.Configuration);
-builder.Services.AddLogging(b => b.AddConsole());
+#if DEBUG
+builder.Services.AddLogging(b => b.AddConsole().AddProvider(new FileSystemLoggerProvider(logFilePath)));
+#endif
 
 var host = builder.Build();
 host.Run();
