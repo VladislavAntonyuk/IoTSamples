@@ -1,0 +1,63 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:client="clr-namespace:RemoteCamera.Client"
+             xmlns:remoteCamera="using:RemoteCamera"
+             x:Class="RemoteCamera.MainPage">
+
+	<ScrollView>
+		<VerticalStackLayout 
+			Padding="30,0"
+			Spacing="25">
+
+			<CheckBox x:Name="IsClientCheckBox" IsChecked="True"/>
+
+			<remoteCamera:ConditionView 
+				If="{Binding Source={x:Reference IsClientCheckBox}, Path=IsChecked}">
+				<remoteCamera:ConditionView.True>
+					<VerticalStackLayout>
+						<Label 
+							Text="Client"
+							HorizontalOptions="Center"/>
+
+						<toolkit:CameraView 
+					        x:Name="MyCameraView"
+					        MediaCaptured="CameraView_OnMediaCaptured"/>
+
+						<Editor 
+					        x:Name="IpAddress"
+					        Text="127.0.0.1"/>
+
+						<Button
+					        Text="Start client"
+					        Clicked="StartClientClicked"
+					        HorizontalOptions="Fill" />
+					</VerticalStackLayout>
+
+				</remoteCamera:ConditionView.True>
+				<remoteCamera:ConditionView.False>
+					<VerticalStackLayout>
+
+						<Label 
+							Text="Server"
+							HorizontalOptions="Center"/>
+
+						<Image
+							x:Name="Image"
+							WidthRequest="500"
+							HeightRequest="500"/>
+
+						<Button
+							Text="Start server"
+							Clicked="StartServerClicked"
+							HorizontalOptions="Fill" />
+
+					</VerticalStackLayout>
+				</remoteCamera:ConditionView.False>
+			</remoteCamera:ConditionView>
+
+		</VerticalStackLayout>
+	</ScrollView>
+
+</ContentPage>
