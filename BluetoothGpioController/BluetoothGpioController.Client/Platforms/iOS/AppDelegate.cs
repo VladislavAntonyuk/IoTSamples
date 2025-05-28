@@ -1,6 +1,6 @@
 ﻿using Foundation;
 
-namespace LampController.Client;
+namespace BluetoothController.Client;
 
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate

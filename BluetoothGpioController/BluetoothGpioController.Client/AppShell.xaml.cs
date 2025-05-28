@@ -1,4 +1,4 @@
-﻿namespace LampController.Client;
+﻿namespace BluetoothController.Client;
 
 public partial class AppShell : Shell
 {

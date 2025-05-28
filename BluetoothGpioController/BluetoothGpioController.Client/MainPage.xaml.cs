@@ -5,7 +5,7 @@ using Plugin.BLE;
 using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
 
-namespace LampController.Client;
+namespace BluetoothController.Client;
 
 public partial class MainPage : ContentPage
 {

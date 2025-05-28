@@ -1,7 +1,8 @@
 ﻿using Android.App;
 using Android.Runtime;
+using BluetoothController.Client;
 
-namespace LampController.Client;
+namespace BluetoothController.Client;
 
 [Application]
 public class MainApplication : MauiApplication
