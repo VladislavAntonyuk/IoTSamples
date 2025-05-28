@@ -1,7 +1,7 @@
 ﻿using ObjCRuntime;
 using UIKit;
 
-namespace LampController.Client;
+namespace BluetoothController.Client;
 
 public class Program
 {

@@ -1,10 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:client="clr-namespace:LampController.Client"
+             xmlns:client="clr-namespace:BluetoothController.Client"
              xmlns:contracts="clr-namespace:Plugin.BLE.Abstractions.Contracts;assembly=Plugin.BLE"
-             x:Class="LampController.Client.MainPage"
-             x:DataType="client:MainPage">
+             xmlns:client1="clr-namespace:BluetoothController.Client"
+             x:Class="BluetoothController.Client.MainPage"
+             x:DataType="client1:MainPage">
 
     <ScrollView>
         <VerticalStackLayout
@@ -20,7 +21,7 @@
                         <Label
                             Text="{Binding Name, StringFormat='Name: {0}'}"
                             FontSize="18"
-                            HorizontalOptions="FillAndExpand"
+                            HorizontalOptions="Fill"
                             VerticalOptions="Center" />
                     </DataTemplate>
                 </CollectionView.ItemTemplate>

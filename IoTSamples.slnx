@@ -7,5 +7,4 @@
     <Deploy />
   </Project>
   <Project Path="BluetoothGpioController/BluetoothGpioController/BluetoothGpioController.csproj" />
-  <Project Path="RemoteCamera/RemoteCamera.csproj" />
 </Solution>
