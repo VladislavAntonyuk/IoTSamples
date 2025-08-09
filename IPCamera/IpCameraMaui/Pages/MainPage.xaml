@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             xmlns:viewModels="clr-namespace:IpCameraMaui.ViewModels"
+             xmlns:ipCameraMaui="clr-namespace:IpCameraMaui"
+             xmlns:system="clr-namespace:System;assembly=System.Runtime"
+             x:Class="IpCameraMaui.Pages.MainPage"
+             x:DataType="viewModels:RtmpCameraViewModel"
+             BackgroundColor="Black"
+             Shell.NavBarIsVisible="False">
+	<ContentPage.Resources>
+		<toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter"/>
+	</ContentPage.Resources>
+
+	<Grid>
+		<ScrollView>
+			<VerticalStackLayout>
+				<ipCameraMaui:MauiSurfaceView
+					x:Name="CameraView"
+					WidthRequest="200"
+					HeightRequest="200"/>
+
+				<Button
+					Text="Start"
+					TextColor="White"
+					IsEnabled="{Binding IsStreaming, Converter={StaticResource InvertedBoolConverter}}"
+					Clicked="StartRtmpStreamClicked"/>
+
+				<Button
+					Text="Stop"
+					TextColor="White"
+					IsEnabled="{Binding IsStreaming}"
+					Command="{Binding StopRtmpStreamCommand}"/>
+
+				<Button
+					Text="Settings"
+					TextColor="White"
+					Command="{Binding OpenSettingsCommand}"/>
+
+				<Label
+					TextColor="Black"
+					Text="Is Power Saving Mode Enabled:"/>
+				<CheckBox
+					IsChecked="{Binding IsPowerSavingModeEnabled}"/>
+
+				<CollectionView ItemsSource="{Binding Logs}">
+					<CollectionView.ItemTemplate>
+						<DataTemplate x:DataType="system:String">
+							<Label Text="{Binding}"
+							       TextColor="White"/>
+						</DataTemplate>
+					</CollectionView.ItemTemplate>
+				</CollectionView>
+
+			</VerticalStackLayout>
+		</ScrollView>
+
+		<BoxView
+			IsVisible="{Binding IsPowerSavingModeEnabled}"
+			BackgroundColor="Black">
+			<BoxView.GestureRecognizers>
+				<TapGestureRecognizer Command="{Binding DisablePowerSavingModeCommand}"/>
+			</BoxView.GestureRecognizers>
+		</BoxView>
+
+	</Grid>
+
+</ContentPage>

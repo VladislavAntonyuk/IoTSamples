@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewModels="clr-namespace:IpCameraMaui.ViewModels"
+             x:Class="IpCameraMaui.Pages.SettingsPage"
+             x:DataType="viewModels:SettingsViewModel"
+             BackgroundColor="White">
+
+	<ScrollView>
+
+		<VerticalStackLayout>
+
+			<Label
+				TextColor="Black"
+				Text="RTMP address:"/>
+			<Editor
+				Text="{Binding RtmpAddressText}"/>
+
+			<Label
+				TextColor="Black"
+				Text="Is Power Saving Mode Enabled:"/>
+			<CheckBox
+				IsChecked="{Binding IsPowerSavingModeEnabled}"/>
+
+			<Label
+				TextColor="Black"
+				Text="Is Autostart Enabled:"/>
+			<CheckBox
+				IsChecked="{Binding IsAutoStartEnabled}"/>
+
+			<Label
+				TextColor="Black"
+				Text="{Binding RecordingsFolder, StringFormat='SaveRecordingToFileStorage: {0}'}"/>
+			<CheckBox
+				IsChecked="{Binding SaveRecordingToFileStorage}"/>
+
+			<Label
+				TextColor="Black"
+				Text="{Binding MaxFiles, StringFormat='Max files: {0}'}"/>
+			<Slider
+				ThumbColor="Black"
+				MinimumTrackColor="Black"
+				MaximumTrackColor="Black"
+				Minimum="0"
+				Maximum="100"
+				Value="{Binding MaxFiles}"/>
+
+		</VerticalStackLayout>
+	</ScrollView>
+
+</ContentView>

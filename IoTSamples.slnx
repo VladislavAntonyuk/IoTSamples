@@ -1,10 +1,18 @@
 <Solution>
+  <Folder Name="/BluetoothGpioController/">
+    <Project Path="BluetoothGpioController/BluetoothGpioController.Client/BluetoothGpioController.Client.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="BluetoothGpioController/BluetoothGpioController/BluetoothGpioController.csproj" />
+  </Folder>
+  <Folder Name="/IPCamera/">
+    <Project Path="IPCamera/IpCameraMaui/IpCameraMaui.csproj">
+      <Deploy />
+    </Project>
+    <Project Path="IPCamera/IpCameraWeb/IpCameraWeb.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="BluetoothGpioController/BluetoothGpioController.Client/BluetoothGpioController.Client.csproj">
-    <Deploy />
-  </Project>
-  <Project Path="BluetoothGpioController/BluetoothGpioController/BluetoothGpioController.csproj" />
 </Solution>
