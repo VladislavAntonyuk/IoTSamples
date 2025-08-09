@@ -5,11 +5,9 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 
-
 		<PublishAot>false</PublishAot>
 		<PublishSingleFile>false</PublishSingleFile>
 		<SelfContained>false</SelfContained>
-		<RuntimeIdentifier>linux-arm64</RuntimeIdentifier>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,6 +15,7 @@
 		<PackageReference Include="LiveStreamingServerNet.AdminPanelUI" Version="0.31.1" />
 		<PackageReference Include="LiveStreamingServerNet.Flv" Version="0.31.1" />
 		<PackageReference Include="LiveStreamingServerNet.Standalone" Version="0.31.1" />
+		<PackageReference Include="MudBlazor" Version="8.11.0" />
 	</ItemGroup>
 
 </Project>

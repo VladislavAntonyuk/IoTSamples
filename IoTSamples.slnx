@@ -9,10 +9,10 @@
     <Project Path="IPCamera/IpCameraMaui/IpCameraMaui.csproj">
       <Deploy />
     </Project>
-    <Project Path="IPCamera/IpCameraWeb/IpCameraWeb.csproj" />
   </Folder>
   <Folder Name="/Solution Items/">
     <File Path="global.json" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="HomeManagement/HomeManagement.csproj" Id="ec61e7d2-d096-4ac6-86b7-8a177c983bfa" />
 </Solution>
