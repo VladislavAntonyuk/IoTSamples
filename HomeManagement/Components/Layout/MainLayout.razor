@@ -1,7 +1,7 @@
 ﻿@inherits LayoutComponentBase
 
-<MudRTLProvider RightToLeft="rightToLeft">
-	<MudThemeProvider @bind-IsDarkMode="@isDarkMode"/>
+<MudRTLProvider RightToLeft="_rightToLeft">
+	<MudThemeProvider @bind-IsDarkMode="@_isDarkMode"/>
 	<MudPopoverProvider/>
 	<MudDialogProvider CloseButton="true"
 	                   CloseOnEscapeKey="true"
@@ -26,7 +26,7 @@
 				<MudLink Href="/" Typo="Typo.subtitle2" Color="Color.Inherit">Home Management</MudLink>
 			</MudHidden>
 			<MudSpacer/>
-			<MudToggleIconButton @bind-Toggled="rightToLeft"
+			<MudToggleIconButton @bind-Toggled="_rightToLeft"
 			                     Icon="@Icons.Material.Filled.FormatTextdirectionRToL"
 			                     ToggledIcon="@Icons.Material.Filled.FormatTextdirectionRToL"
 			                     Color="Color.Inherit"/>
@@ -62,9 +62,9 @@
 
 
 @code {
-	bool _drawerOpen = true;
-	private bool isDarkMode = true;
-	private bool rightToLeft;
+	private bool _drawerOpen = true;
+	private bool _isDarkMode = true;
+	private bool _rightToLeft;
 
 
 	void DrawerToggle()

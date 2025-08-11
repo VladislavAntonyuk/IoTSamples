@@ -23,3 +23,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable home-management.service
 sudo systemctl start home-management.service
 sudo systemctl status home-management.service
+
+
+
+
+ssh vladislav@raspberrypi-zero-2w.local
+rm -r Projects/HomeManagement
+
+
+scp -r "./" vladislav@raspberrypi-zero-2w.local:/home/vladislav/Projects/HomeManagement

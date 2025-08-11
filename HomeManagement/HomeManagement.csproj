@@ -16,6 +16,7 @@
 		<PackageReference Include="LiveStreamingServerNet.Flv" Version="0.31.1" />
 		<PackageReference Include="LiveStreamingServerNet.Standalone" Version="0.31.1" />
 		<PackageReference Include="MudBlazor" Version="8.11.0" />
+		<PackageReference Include="System.Device.Gpio" Version="4.0.1" />
 	</ItemGroup>
 
 </Project>

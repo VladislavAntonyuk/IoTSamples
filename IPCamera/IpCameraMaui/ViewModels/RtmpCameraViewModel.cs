@@ -11,7 +11,6 @@ namespace IpCameraMaui.ViewModels;
 using Android.Views;
 using Com.Pedro.Encoder.Input.Video;
 using Com.Pedro.Rtplibrary.Rtmp;
-using RtpLibrary;
 #endif
 
 public partial class RtmpCameraViewModel(SettingsViewModel settingsViewModel) : ObservableObject
@@ -20,9 +19,16 @@ public partial class RtmpCameraViewModel(SettingsViewModel settingsViewModel) : 
     public partial bool IsStreaming { get; private set; }
 
     public ObservableCollection<string> Logs { get; set; } = [];
+    public ObservableCollection<Size> Resolutions { get; set; } = [];
+
+    [ObservableProperty]
+    public partial Size SelectedResolution { get; set; } = new (1920, 1080);
+
+    [ObservableProperty]
+    public partial int Bitrate { get; set; } = 5000;
 
 #if ANDROID
-    private RtmpCamera1? rtmpCamera;
+    private RtmpCamera1? _rtmpCamera;
 
     public async Task Init(SurfaceView surfaceView)
     {
@@ -35,7 +41,15 @@ public partial class RtmpCameraViewModel(SettingsViewModel settingsViewModel) : 
         }
 
 
-        rtmpCamera = new RtmpCamera1(surfaceView, new ConnectChecker(s => Logs.Add($"{DateTime.Now} - {s}")));
+        _rtmpCamera = new RtmpCamera1(surfaceView, new ConnectChecker(s => Logs.Add($"{DateTime.Now} - {s}")));
+        Resolutions.Clear();
+        foreach (var resolution in _rtmpCamera.ResolutionsBack.Select(x => new Size(x.Width, x.Height)))
+        {
+            Resolutions.Add(resolution);
+        }
+
+        SelectedResolution = Resolutions.FirstOrDefault(new Size(1280, 720));
+
         IsPowerSavingModeEnabled = settingsViewModel.IsPowerSavingModeEnabled;
     }
 #endif
@@ -44,28 +58,27 @@ public partial class RtmpCameraViewModel(SettingsViewModel settingsViewModel) : 
     {
         Logs.Clear();
 #if ANDROID
-        if (rtmpCamera is null)
+        if (_rtmpCamera is null)
         {
             return;
         }
 
-        var resolution = rtmpCamera.ResolutionsBack.OrderByDescending(x => x.Width).FirstOrDefault();
-        if (rtmpCamera.PrepareAudio() && rtmpCamera.PrepareVideo(resolution.Width, resolution.Height, 5000 * 1024))
+        if (_rtmpCamera.PrepareAudio() && _rtmpCamera.PrepareVideo((int)SelectedResolution.Width, (int)SelectedResolution.Height, Bitrate * 1024))
         {
             DeviceDisplay.KeepScreenOn = true;
             if (string.IsNullOrWhiteSpace(settingsViewModel.RecordingsFolder) || !settingsViewModel.SaveRecordingToFileStorage)
             {
-                rtmpCamera.StartStream(settingsViewModel.RtmpAddressText);
+                _rtmpCamera.StartStream(settingsViewModel.RtmpAddressText);
             }
             else
             {
                 await DeleteOldRecords();
-                rtmpCamera.StartStreamAndRecord(settingsViewModel.RtmpAddressText, Path.Combine(settingsViewModel.RecordingsFolder, $"recording-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}.mp4"));
+                _rtmpCamera.StartStreamAndRecord(settingsViewModel.RtmpAddressText, Path.Combine(settingsViewModel.RecordingsFolder, $"recording-{DateTimeOffset.Now.ToUnixTimeMilliseconds()}.mp4"));
             }
 
-            if (rtmpCamera.CameraFacing != CameraHelper.Facing.Back)
+            if (_rtmpCamera.CameraFacing != CameraHelper.Facing.Back)
             {
-                rtmpCamera.SwitchCamera();
+                _rtmpCamera.SwitchCamera();
             }
 
             IsStreaming = true;
@@ -78,19 +91,19 @@ public partial class RtmpCameraViewModel(SettingsViewModel settingsViewModel) : 
     [RelayCommand]
     private void StopRtmpStream()
     {
-        if (rtmpCamera is null)
+        if (_rtmpCamera is null)
         {
             return;
         }
 
-        if (rtmpCamera.IsStreaming)
+        if (_rtmpCamera.IsStreaming)
         {
-            rtmpCamera.StopStream();
+            _rtmpCamera.StopStream();
         }
 
-        if (rtmpCamera.IsRecording)
+        if (_rtmpCamera.IsRecording)
         {
-            rtmpCamera.StopRecord();
+            _rtmpCamera.StopRecord();
         }
 
         IsStreaming = false;
@@ -136,5 +149,27 @@ public partial class RtmpCameraViewModel(SettingsViewModel settingsViewModel) : 
                 File.Delete(file);
             }
         }
+    }
+
+    async partial void OnSelectedResolutionChanged(Size value)
+    {
+#if ANDROID
+        if (_rtmpCamera is not null)
+        {
+            StopRtmpStream();
+            await StartRtmpStream();
+        }
+#endif
+    }
+
+    async partial void OnBitrateChanged(int value)
+    {
+#if ANDROID
+        if (_rtmpCamera is not null)
+        {
+            StopRtmpStream();
+            await StartRtmpStream();
+        }
+#endif
     }
 }

@@ -7,7 +7,7 @@ namespace BluetoothGpioController;
 
 internal class GattCharacteristicDescription(ILoggerFactory loggerFactory, IOptions<AppSettings> options) : DotnetBleServer.Gatt.Description.GattCharacteristicDescription
 {
-    private const string help = """
+    private const string Help = """
                                 PASSWORD;GPIO;PIN;MODE;VALUE
                                 PASSWORD;REBOOT
                                 PASSWORD;SHUTDOWN
@@ -79,7 +79,7 @@ internal class GattCharacteristicDescription(ILoggerFactory loggerFactory, IOpti
             _logger.LogInformation("Reading value PIN: {Pin}, MODE: {Mode}, VALUE: {Value}", pinNumber, mode, pinValue);
         }
 
-        return Task.FromResult(Encoding.UTF8.GetBytes(help));
+        return Task.FromResult(Encoding.UTF8.GetBytes(Help));
     }
 
     private bool ProcessGpio(string[] gpioCommand)

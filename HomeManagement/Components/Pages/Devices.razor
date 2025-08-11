@@ -1,0 +1,27 @@
+﻿@page "/devices"
+@using System.Device.Gpio
+
+<PageTitle>Devices</PageTitle>
+
+
+<MudButton OnClick="On">On</MudButton>
+<MudButton OnClick="Off">Off</MudButton>
+
+@code {
+
+	private void On()
+	{
+		var pinNumber = 10;
+		using var controller = new GpioController();
+		var pin = controller.OpenPin(pinNumber, PinMode.Output, true);
+		pin.Write(1);
+	}
+
+	private void Off()
+	{
+		var pinNumber = 10;
+		using var controller = new GpioController();
+		var pin = controller.OpenPin(pinNumber, PinMode.Input, true);
+		pin.Write(0);
+	}
+}

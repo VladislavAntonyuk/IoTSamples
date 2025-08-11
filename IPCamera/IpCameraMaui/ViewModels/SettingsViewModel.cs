@@ -6,14 +6,14 @@ namespace IpCameraMaui.ViewModels;
 
 public partial class SettingsViewModel : ObservableObject
 {
-	private readonly IAutoStartService autoStartService;
-	private readonly IPreferences preferences;
-	private bool isFirstStart = true;
+	private readonly IAutoStartService _autoStartService;
+	private readonly IPreferences _preferences;
+	private bool _isFirstStart = true;
 
 	public SettingsViewModel(IAutoStartService autoStartService, IPreferences preferences)
 	{
-		this.autoStartService = autoStartService;
-		this.preferences = preferences;
+		this._autoStartService = autoStartService;
+		this._preferences = preferences;
 
 		RtmpAddressText = preferences.Get(nameof(RtmpAddressText), "rtmp://localhost:1935/live/demo");
         MaxFiles = preferences.Get(nameof(MaxFiles), 1);
@@ -25,7 +25,7 @@ public partial class SettingsViewModel : ObservableObject
 		}
 		else
 		{
-			isFirstStart = false;
+			_isFirstStart = false;
 		}
 
         IsPowerSavingModeEnabled = preferences.Get(nameof(IsPowerSavingModeEnabled), false);
@@ -52,33 +52,33 @@ public partial class SettingsViewModel : ObservableObject
 
     partial void OnRtmpAddressTextChanged(string value)
     {
-        preferences.Set(nameof(RtmpAddressText), value);
+        _preferences.Set(nameof(RtmpAddressText), value);
     }
 
     partial void OnMaxFilesChanged(int value)
     {
-        preferences.Set(nameof(MaxFiles), value);
+        _preferences.Set(nameof(MaxFiles), value);
     }
 
     async partial void OnIsAutoStartEnabledChanged(bool value)
 	{
 		if (value)
 		{
-			await autoStartService.EnableAutoStartAsync();
+			await _autoStartService.EnableAutoStartAsync();
 		}
 		else
 		{
-			await autoStartService.DisableAutoStartAsync();
+			await _autoStartService.DisableAutoStartAsync();
 		}
 
-		preferences.Set(nameof(IsAutoStartEnabled), await autoStartService.IsAutoStartEnabledAsync());
+		_preferences.Set(nameof(IsAutoStartEnabled), await _autoStartService.IsAutoStartEnabledAsync());
 	}
 
 	async partial void OnSaveRecordingToFileStorageChanged(bool value)
 	{
-		if (isFirstStart)
+		if (_isFirstStart)
 		{
-			isFirstStart = false;
+			_isFirstStart = false;
 			return;
 		}
 
@@ -95,11 +95,11 @@ public partial class SettingsViewModel : ObservableObject
 			RecordingsFolder = null;
 		}
 
-		preferences.Set(nameof(RecordingsFolder), RecordingsFolder);
+		_preferences.Set(nameof(RecordingsFolder), RecordingsFolder);
 	}
 
     partial void OnIsPowerSavingModeEnabledChanged(bool value)
     {
-        preferences.Set(nameof(IsPowerSavingModeEnabled), value);
+        _preferences.Set(nameof(IsPowerSavingModeEnabled), value);
     }
 }

@@ -1,7 +1,36 @@
 ﻿@page "/"
+@inject ISnackbar Snackbar
+
+@using System.Diagnostics
+
+@code {
+	private void Reboot()
+	{
+		try
+		{
+			Process.Start("sudo", "systemctl reboot");
+		}
+		catch (Exception e)
+		{
+			Snackbar.Add(e.Message, Severity.Error);
+		}
+	}
+
+	private void Shutdown()
+	{
+		try
+		{
+			Process.Start("sudo", "systemctl poweroff");
+		}
+		catch (Exception e)
+		{
+			Snackbar.Add(e.Message, Severity.Error);
+		}
+	}
+
+}
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<MudButton OnClick="Reboot">Reboot</MudButton>
+<MudButton OnClick="Shutdown">Shutdown</MudButton>

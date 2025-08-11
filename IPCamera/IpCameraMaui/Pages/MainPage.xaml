@@ -22,6 +22,13 @@
 					WidthRequest="200"
 					HeightRequest="200"/>
 
+				<Picker ItemsSource="{Binding Resolutions}"
+				        SelectedItem="{Binding SelectedResolution}"/>
+
+				<Slider Value="{Binding Bitrate}"
+				        Minimum="1000"
+				        Maximum="50000"></Slider>
+
 				<Button
 					Text="Start"
 					TextColor="White"
@@ -45,7 +52,8 @@
 				<CheckBox
 					IsChecked="{Binding IsPowerSavingModeEnabled}"/>
 
-				<CollectionView ItemsSource="{Binding Logs}">
+				<CollectionView ItemsSource="{Binding Logs}"
+				                MaximumHeightRequest="500">
 					<CollectionView.ItemTemplate>
 						<DataTemplate x:DataType="system:String">
 							<Label Text="{Binding}"
