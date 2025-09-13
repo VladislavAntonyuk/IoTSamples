@@ -14,7 +14,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="BluetoothLE.Server.Linux" Version="1.0.0" />
-		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.8" />
+		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.9" />
 		<PackageReference Include="System.Device.Gpio" Version="4.0.1" />
 	</ItemGroup>
 </Project>

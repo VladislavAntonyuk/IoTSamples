@@ -1,0 +1,27 @@
+@namespace HomeManagement.Components.Dialogs
+@using MudBlazor
+@inherits ComponentBase
+
+<MudPaper Class="pa-4" Elevation="1" Style="min-width:320px;">
+    <MudStack Spacing="2">
+        <MudText Typo="Typo.h6">Add Device by IP</MudText>
+        <MudTextField @bind-Value="Ip" Label="IP Address" Required="true" Immediate="true" />
+        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="string.IsNullOrWhiteSpace(Ip)" OnClick="Save">Add</MudButton>
+        </MudStack>
+    </MudStack>
+</MudPaper>
+
+@code {
+    [CascadingParameter] IMudDialogInstance DialogReference { get; set; } = default!;
+    private string Ip { get; set; } = string.Empty;
+
+    private void Save()
+    {
+        if (string.IsNullOrWhiteSpace(Ip)) return;
+        DialogReference.Close(DialogResult.Ok(Ip.Trim()));
+    }
+
+    private void Cancel() => DialogReference.Close(DialogResult.Cancel());
+}

@@ -8,7 +8,8 @@
 	{
 		try
 		{
-			Process.Start("sudo", "systemctl reboot");
+			Process.Start("reboot");
+			Snackbar.Add("Rebooting...", Severity.Success);
 		}
 		catch (Exception e)
 		{
@@ -20,7 +21,8 @@
 	{
 		try
 		{
-			Process.Start("sudo", "systemctl poweroff");
+			Process.Start("poweroff");			
+			Snackbar.Add("Shutting down...", Severity.Success);
 		}
 		catch (Exception e)
 		{
@@ -28,9 +30,21 @@
 		}
 	}
 
+	private string? GetLocalIp()
+	{
+		var subnetBytes = NetworkManager.GetSubnets();
+		if (subnetBytes is null)
+		{
+			return null;
+		}
+
+
+		return $"{subnetBytes[0]}.{subnetBytes[1]}.{subnetBytes[2]}.{subnetBytes[3]}";
+	}
 }
 
 <PageTitle>Home</PageTitle>
 
-<MudButton OnClick="Reboot">Reboot</MudButton>
-<MudButton OnClick="Shutdown">Shutdown</MudButton>
+<MudText>@GetLocalIp()</MudText>
+<MudButton OnClick="Reboot" Color="Color.Error" Variant="Variant.Filled">Reboot</MudButton>
+<MudButton OnClick="Shutdown" Color="Color.Error" Variant="Variant.Filled">Shutdown</MudButton>

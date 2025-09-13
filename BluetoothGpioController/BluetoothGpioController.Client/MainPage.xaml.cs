@@ -52,7 +52,11 @@ public partial class MainPage : ContentPage
     private async void SelectableItemsView_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         var device = e.CurrentSelection.OfType<IDevice>().FirstOrDefault();
-        if (device == null) return;
+        if (device == null)
+        {
+            return;
+        }
+
         try
         {
             await CrossBluetoothLE.Current.Adapter.ConnectToDeviceAsync(device, new ConnectParameters(true, true, ConnectionParameterSet.Balanced));

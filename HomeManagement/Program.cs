@@ -6,11 +6,13 @@ using LiveStreamingServerNet.Flv.Installer;
 using LiveStreamingServerNet.Standalone;
 using LiveStreamingServerNet.Standalone.Installer;
 using MudBlazor.Services;
+using HomeManagement;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddDbContextFactory<HomeManagementDbContext>(options => options.UseSqlite("Data Source=home_management.db"));
 builder.Services.AddMudServices();
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -21,11 +23,17 @@ builder.Services.AddLiveStreamingServer(
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<HomeManagementDbContext>>();
+    using var dbContext = dbContextFactory.CreateDbContext();
+    await dbContext.Database.MigrateAsync();
+}
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -40,4 +48,4 @@ app.UseAdminPanelUI(new AdminPanelUIOptions { BasePath = "/ip-cameras", HasHttpF
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.Run();
+await app.RunAsync();

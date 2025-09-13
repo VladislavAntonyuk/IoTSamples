@@ -18,12 +18,17 @@ public class FileSystemLogger(string categoryName, string filePath) : ILogger
         Exception? exception,
         Func<TState, Exception?, string> formatter)
     {
-        if (!IsEnabled(logLevel)) return;
+        if (!IsEnabled(logLevel))
+        {
+            return;
+        }
 
         var message = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{logLevel}] {categoryName}: {formatter(state, exception)}";
 
         if (exception is not null)
+        {
             message += Environment.NewLine + exception;
+        }
 
         lock (Lock)
         {

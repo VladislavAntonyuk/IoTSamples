@@ -1,27 +1,243 @@
 ﻿@page "/devices"
-@using System.Device.Gpio
+@using Microsoft.EntityFrameworkCore
+@using HomeManagement.Components.Dialogs
+@inject ISnackbar Snackbar
+@inject IDbContextFactory<HomeManagementDbContext> DbContextFactory
+@inject IDialogService DialogService
 
 <PageTitle>Devices</PageTitle>
 
+<MudTable @ref="table" ServerData="ServerReload" Dense="true" Hover="true">
+	<ToolBarContent>
+		<MudText Typo="Typo.h6">Devices</MudText>
+		<MudSpacer />
+		<MudNumericField T="int" Step="100" Placeholder="Timeout" @bind-Value="timeout" />
+		<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => table.ReloadServerData()">Refresh</MudButton>
+        
+		<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ScanNetworkDevices">Scan</MudButton>
 
-<MudButton OnClick="On">On</MudButton>
-<MudButton OnClick="Off">Off</MudButton>
+		<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Add">Add</MudButton>
+	</ToolBarContent>
+	<HeaderContent>
+		<MudTh><MudTableSortLabel T="Device">IP</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel T="Device">Name</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel T="Device">Uptime</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel T="Device">Actions</MudTableSortLabel></MudTh>
+        <MudTh></MudTh>
+	</HeaderContent>
+	<RowTemplate>
+		<MudTd DataLabel="IP">@context.Ip</MudTd>
+        <MudTd DataLabel="Name">@context.Name</MudTd>
+		<MudTd DataLabel="Uptime">@FormatDuration(context.UptimeSeconds)</MudTd>
+		<MudTd DataLabel="Actions">
+			@foreach (var action in context.Actions)
+			{
+				<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => RunAction(context.Ip, action))" Class="me-2 mb-1">@action.Action</MudButton>
+			}
+		</MudTd>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="() => Edit(context)" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => Delete(context)" />
+        </MudTd>
+	</RowTemplate>
+	<NoRecordsContent>
+		<MudText>No devices found</MudText>
+	</NoRecordsContent>
+	<LoadingContent>
+		<MudText>Loading...</MudText>
+	</LoadingContent>
+	<PagerContent>
+		<MudTablePager />
+	</PagerContent>
+</MudTable>
 
 @code {
 
-	private void On()
-	{
-		var pinNumber = 10;
-		using var controller = new GpioController();
-		var pin = controller.OpenPin(pinNumber, PinMode.Output, true);
-		pin.Write(1);
-	}
+    int timeout = 100;
+    private MudTable<Device> table;
 
-	private void Off()
-	{
-		var pinNumber = 10;
-		using var controller = new GpioController();
-		var pin = controller.OpenPin(pinNumber, PinMode.Input, true);
-		pin.Write(0);
-	}
+    private async Task ScanNetworkDevices()
+    {
+        var baseIP = NetworkManager.GetLocalSubnet();
+        if (baseIP is null)
+        {
+            Snackbar.Add("No active IPv4 network interface found.", Severity.Error);
+            return;
+        }
+
+        var loadTask = NetworkManager.ScanNetworkAsync(baseIP, timeout, CancellationToken.None);
+        var parameters = new DialogParameters
+        {
+            ["LoadTask"] = loadTask
+        };
+        var dialog = await DialogService.ShowAsync<ScanDevicesDialog>("Scan Network", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var devices = (List<Device>)result.Data!;
+            if (devices.Count == 0) return;
+            try
+            {
+                await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+                foreach (var d in devices)
+                {
+                    // No merge or existence check per requirement; attempt add
+                    dbContext.Devices.Add(new Device(d.Name, d.Ip, d.UptimeSeconds)
+                    {
+                        Actions = d.Actions.Select(a => new DeviceAction(a.Action, a.Command)).ToList()
+                    });
+                }
+                await dbContext.SaveChangesAsync();
+                Snackbar.Add($"Added {devices.Count} device(s).", Severity.Success);
+                await table.ReloadServerData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to add scanned devices: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task<TableData<Device>> ServerReload(TableState state, CancellationToken token)
+    {
+        await using var dbContext = await DbContextFactory.CreateDbContextAsync(token);        
+        var devices = await dbContext.Devices.Include(d => d.Actions)
+            .OrderBy(d => d.Name)
+            .Skip(state.Page * state.PageSize)
+            .Take(state.PageSize)
+            .ToListAsync(token);
+
+        var totalItems = await dbContext.Devices.CountAsync(token);
+        return new TableData<Device>() { TotalItems = totalItems, Items = devices };
+    }
+
+    private async Task RunAction(string ip, DeviceAction action)
+    {
+        using var httpClient = new HttpClient();
+        var result = await httpClient.GetAsync($"http://{ip}{action.Command}");
+        if (result.IsSuccessStatusCode)
+        {
+            Snackbar.Add(await result.Content.ReadAsStringAsync(), Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add(await result.Content.ReadAsStringAsync(), Severity.Error);
+        }
+    }
+
+    public static string FormatDuration(long totalSeconds)
+    {
+        TimeSpan ts = TimeSpan.FromSeconds(totalSeconds);
+
+        var parts = new List<string>();
+
+        if (ts.Days > 0)
+            parts.Add($"{ts.Days} day{(ts.Days > 1 ? "s" : "")}");
+
+        if (ts.Hours > 0 || parts.Count > 0)
+            parts.Add($"{ts.Hours} hour{(ts.Hours != 1 ? "s" : "")}");
+
+        if (ts.Minutes > 0 || parts.Count > 0)
+            parts.Add($"{ts.Minutes} minute{(ts.Minutes != 1 ? "s" : "")}");
+
+        parts.Add($"{ts.Seconds} second{(ts.Seconds != 1 ? "s" : "")}");
+
+        return string.Join(", ", parts);
+    }
+
+    private async void Add()
+    {
+        var dialog = await DialogService.ShowAsync<IpAddressDialog>("Enter IP");
+        var result = await dialog.Result;
+        if (result.Canceled) return;
+        var ip = (string)result.Data!;
+        try
+        {
+            using var httpClient = new HttpClient();
+            var device = await httpClient.GetFromJsonAsync<Device>($"http://{ip}/info");
+            if (device is null)
+            {
+                Snackbar.Add("Failed to fetch device info.", Severity.Error);
+                return;
+            }
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            dbContext.Devices.Add(new Device(device.Name, device.Ip, device.UptimeSeconds)
+            {
+                Actions = device.Actions.Select(a => new DeviceAction(a.Action, a.Command)).ToList()
+            });
+            await dbContext.SaveChangesAsync();
+            Snackbar.Add($"Device '{device.Name}' added.", Severity.Success);
+            await table.ReloadServerData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to add device: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task Edit(Device device)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Model"] = new DeviceEditModel
+            {
+                Name = device.Name,
+                Ip = device.Ip,
+                UptimeSeconds = device.UptimeSeconds,
+                Actions = device.Actions.Select(a => new DeviceActionEditModel{ Action = a.Action, Command = a.Command }).ToList()
+            },
+            ["IsEdit"] = true
+        };
+        var dialog = await DialogService.ShowAsync<DeviceEditDialog>($"Edit {device.Name}", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled)
+        {
+            var model = (DeviceEditModel)result.Data!;
+            try
+            {
+                await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+                var existing = await dbContext.Devices.Include(d => d.Actions).FirstOrDefaultAsync(d => d.Name == device.Name);
+                if (existing is null)
+                {
+                    Snackbar.Add("Device not found.", Severity.Error);
+                    return;
+                }
+                dbContext.Devices.Remove(existing);
+                var replacement = new Device(model.Name, model.Ip, model.UptimeSeconds)
+                {
+                    Actions = model.Actions.Select(a => new DeviceAction(a.Action, a.Command)).ToList()
+                };
+                dbContext.Devices.Add(replacement);
+                await dbContext.SaveChangesAsync();
+                Snackbar.Add("Device updated.", Severity.Success);
+                await table.ReloadServerData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Failed to update device: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task Delete(Device device)
+    {
+        try
+        {
+            await using var dbContext = await DbContextFactory.CreateDbContextAsync();
+            var existing = await dbContext.Devices.FirstOrDefaultAsync(d => d.Name == device.Name);
+            if (existing is null)
+            {
+                Snackbar.Add("Device not found in DB.", Severity.Warning);
+                return;
+            }
+            dbContext.Devices.Remove(existing);
+            await dbContext.SaveChangesAsync();
+            Snackbar.Add($"Deleted {device.Name}.", Severity.Success);
+            await table.ReloadServerData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to delete device: {ex.Message}", Severity.Error);
+        }
+    }
 }

@@ -1,0 +1,70 @@
+@namespace HomeManagement.Components.Dialogs
+@using MudBlazor
+@using HomeManagement.Components.Dialogs
+@inherits ComponentBase
+
+<MudPaper Class="pa-4" Elevation="1">
+    <MudForm @ref="_form">
+        <MudTextField @bind-Value="Model.Name" Label="Name" Required="true" />
+        <MudTextField @bind-Value="Model.Ip" Label="IP" Required="true" />
+        <MudNumericField T="int" @bind-Value="Model.UptimeSeconds" Label="Uptime (sec)" Min="0" />
+
+        <MudDivider Class="my-2" />
+        <MudText Typo="Typo.subtitle1">Actions</MudText>
+        @if (Model.Actions.Count == 0)
+        {
+            <MudText Color="Color.Secondary" Typo="Typo.caption">No actions. Add one.</MudText>
+        }
+        @foreach (var (action, index) in Model.Actions.Select((a,i) => (a,i)))
+        {
+            <MudPaper Class="pa-2 my-2" Elevation="0">
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudTextField @bind-Value="action.Action" Label="Action" Required="true" />
+                    <MudTextField @bind-Value="action.Command" Label="Command" Required="true" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => RemoveAction(index)" />
+                </MudStack>
+            </MudPaper>
+        }
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="AddAction" StartIcon="@Icons.Material.Filled.Add" Class="my-2">Add Action</MudButton>
+
+        <MudStack Row="true" Spacing="2" Justify="Justify.FlexEnd" Class="mt-4">
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="_saving">Save</MudButton>
+            <MudButton Color="Color.Secondary" Variant="Variant.Outlined" OnClick="Cancel" Disabled="_saving">Cancel</MudButton>
+        </MudStack>
+    </MudForm>
+</MudPaper>
+
+@code {
+    [CascadingParameter] IMudDialogInstance DialogReference { get; set; } = default!;
+    [Parameter] public DeviceEditModel Model { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private MudForm _form = default!;
+    private bool _saving;
+
+    private async void Save()
+    {
+        _saving = true;
+        await _form.Validate();
+        if (!_form.IsValid)
+        {
+            _saving = false;
+            return;
+        }
+
+        DialogReference.Close(DialogResult.Ok(Model));
+    }
+
+    private void Cancel() => DialogReference.Close(DialogResult.Cancel());
+
+    private void AddAction()
+    {
+        Model.Actions.Add(new DeviceActionEditModel());
+    }
+
+    private void RemoveAction(int index)
+    {
+        if (index >=0 && index < Model.Actions.Count)
+            Model.Actions.RemoveAt(index);
+    }
+}
