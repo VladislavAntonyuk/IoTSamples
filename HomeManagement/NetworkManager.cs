@@ -1,3 +1,4 @@
+using HomeManagement.Components.Dialogs;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
@@ -5,9 +6,9 @@ namespace HomeManagement;
 
 public class NetworkManager
 {
-    public static async Task<List<Device>> ScanNetworkAsync(string baseIP, int timeout, CancellationToken token)
+    public static async Task<List<NetworkDevice>> ScanNetworkAsync(string baseIP, int timeout, CancellationToken token)
     {
-        var tasks = new List<Task<Device?>>();
+        var tasks = new List<Task<NetworkDevice?>>();
 
         for (int i = 1; i <= 254; i++)
         {
@@ -16,10 +17,10 @@ public class NetworkManager
         }
 
         var results = await Task.WhenAll(tasks);
-        return results.OfType<Device>().ToList();
+        return results.OfType<NetworkDevice>().ToList();
     }
 
-    static async Task<Device?> PingAndResolveAsync(string ip, int timeout, CancellationToken token)
+    static async Task<NetworkDevice?> PingAndResolveAsync(string ip, int timeout, CancellationToken token)
     {
         using Ping ping = new();
         try
@@ -49,6 +50,12 @@ public class NetworkManager
         return $"{subnetBytes[0]}.{subnetBytes[1]}.{subnetBytes[2]}.";
     }
 
+    public static string? GetLocalIp()
+    {
+        var subnetBytes = GetSubnets();
+        if (subnetBytes is null) return null;
+        return $"{subnetBytes[0]}.{subnetBytes[1]}.{subnetBytes[2]}.{subnetBytes[3]}";
+    }
 
     public static byte[]? GetSubnets()
     {
@@ -78,9 +85,16 @@ public class NetworkManager
         return null;
     }
 
-    private static async Task<Device?> GetDeviceInfoAsync(string ip, CancellationToken token)
+    public static async Task<NetworkDevice?> GetDeviceInfoAsync(string address, CancellationToken token)
     {
-        using var httpClient = new HttpClient();
-        return await httpClient.GetFromJsonAsync<Device>($"http://{ip}/info", token);
+        try
+        {
+            using var httpClient = new HttpClient();
+            return await httpClient.GetFromJsonAsync<NetworkDevice>($"http://{address}/info", token);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
     }
 }

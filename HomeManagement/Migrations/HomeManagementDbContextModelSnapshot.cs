@@ -27,9 +27,6 @@ namespace HomeManagement.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("UptimeSeconds")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Name");
 
                     b.ToTable("Devices", (string)null);

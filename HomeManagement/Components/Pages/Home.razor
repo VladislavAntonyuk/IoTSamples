@@ -1,9 +1,58 @@
 ﻿@page "/"
 @inject ISnackbar Snackbar
-
+@inject IDbContextFactory<HomeManagementDbContext> DbContextFactory
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
 @using System.Diagnostics
+@using System.Net.NetworkInformation
+
+<PageTitle>Home</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="pa-4">
+	<MudGrid Spacing="3">
+		<MudItem xs="12" sm="6" md="3">
+			<MudCard Class="pa-4" Style="height:100%">
+				<MudStack Spacing="1">
+					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Total Devices</MudText>
+					<MudText Typo="Typo.h4">@totalDevices</MudText>
+				</MudStack>
+			</MudCard>
+		</MudItem>
+		<MudItem xs="12" sm="6" md="3">
+			<MudCard Class="pa-4" Style="height:100%">
+				<MudStack Spacing="1">
+					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Local IP</MudText>
+					<MudText Typo="Typo.h6">@localIp</MudText>
+				</MudStack>
+			</MudCard>
+		</MudItem>
+	</MudGrid>
+
+	<MudGrid Class="mt-4" Spacing="3">
+		<MudItem xs="12" md="6">
+			<MudPaper Class="pa-4" Elevation="1">
+				<MudText Typo="Typo.h6" Class="mb-2">Server Controls</MudText>
+				<MudStack Spacing="2">
+					<MudButton OnClick="Reboot" Color="Color.Error" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.RestartAlt">Reboot</MudButton>
+					<MudButton OnClick="Shutdown" Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PowerSettingsNew">Shutdown</MudButton>
+					<MudButton Href="/devices" Color="Color.Primary" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Devices">Manage Devices</MudButton>
+				</MudStack>
+			</MudPaper>
+		</MudItem>
+	</MudGrid>
+</MudContainer>
 
 @code {
+	private int totalDevices;
+	private string? localIp;
+
+	protected override async Task OnInitializedAsync()
+	{
+		localIp = NetworkManager.GetLocalIp();
+		await using var db = await DbContextFactory.CreateDbContextAsync();
+		totalDevices = await db.Devices.CountAsync();
+	}
+
 	private void Reboot()
 	{
 		try
@@ -21,7 +70,7 @@
 	{
 		try
 		{
-			Process.Start("poweroff");			
+			Process.Start("poweroff");
 			Snackbar.Add("Shutting down...", Severity.Success);
 		}
 		catch (Exception e)
@@ -29,22 +78,4 @@
 			Snackbar.Add(e.Message, Severity.Error);
 		}
 	}
-
-	private string? GetLocalIp()
-	{
-		var subnetBytes = NetworkManager.GetSubnets();
-		if (subnetBytes is null)
-		{
-			return null;
-		}
-
-
-		return $"{subnetBytes[0]}.{subnetBytes[1]}.{subnetBytes[2]}.{subnetBytes[3]}";
-	}
 }
-
-<PageTitle>Home</PageTitle>
-
-<MudText>@GetLocalIp()</MudText>
-<MudButton OnClick="Reboot" Color="Color.Error" Variant="Variant.Filled">Reboot</MudButton>
-<MudButton OnClick="Shutdown" Color="Color.Error" Variant="Variant.Filled">Shutdown</MudButton>

@@ -1,0 +1,24 @@
+﻿@page "/Account/Login"
+
+<PageTitle>Login</PageTitle>
+
+
+<form method="post" action="api/account/login">
+	<input type="hidden" name="returnUrl" value="@ReturnUrl" />
+	<input type="hidden" name="remember" value="@RememberMe.ToString()" />
+	<AntiforgeryToken />
+	<MudTextField T="string" @bind-Value="Username" Label="Username" Required=true name="username" />
+	<MudTextField T="string" @bind-Value="Key" InputType="InputType.Password" Label="Key" Required=true name="key" />
+	<MudCheckBox T="bool" @bind-Value="RememberMe" Label="Remember Me"/>
+	<MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Login</MudButton>
+</form>
+
+@code {
+
+	private string? Username { get; set; }
+	private string? Key { get; set; }
+	private bool RememberMe { get; set; }
+
+	[SupplyParameterFromQuery(Name = "returnUrl")]
+	public string? ReturnUrl { get; set; }
+}

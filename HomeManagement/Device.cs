@@ -1,8 +1,12 @@
 namespace HomeManagement;
 
-public record Device(string Name, string Ip, int UptimeSeconds)
+public class Device
 {
-    public IList<DeviceAction> Actions { get; init; } = new List<DeviceAction>();
+    public required string Name { get; init; }
+
+    public required string Ip { get; init; }
+
+    public IList<DeviceAction> Actions { get; init; } = [];
 }
 
 public record DeviceAction(string Action, string Command);

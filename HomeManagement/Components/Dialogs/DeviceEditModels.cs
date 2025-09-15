@@ -4,7 +4,6 @@ public class DeviceEditModel
 {
     public string Name { get; set; } = string.Empty;
     public string Ip { get; set; } = string.Empty;
-    public int UptimeSeconds { get; set; }
     public List<DeviceActionEditModel> Actions { get; set; } = new();
 }
 

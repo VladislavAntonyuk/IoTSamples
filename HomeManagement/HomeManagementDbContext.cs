@@ -15,16 +15,14 @@ public class HomeManagementDbContext(DbContextOptions<HomeManagementDbContext> o
         device.HasKey(d => d.Name);
         device.Property(d => d.Name).HasMaxLength(100).IsRequired();
         device.Property(d => d.Ip).HasMaxLength(100).IsRequired();
-        device.Property(d => d.UptimeSeconds);
 
-        // Configure owned collection of actions
         device.OwnsMany(d => d.Actions, a =>
         {
             a.WithOwner().HasForeignKey("DeviceName");
             a.ToTable("DeviceActions");
             a.Property(x => x.Action).HasMaxLength(50).IsRequired();
             a.Property(x => x.Command).IsRequired();
-            // Shadow key for owned entity instances
+
             a.Property<int>("Id").ValueGeneratedOnAdd();
             a.HasKey("Id");
         });

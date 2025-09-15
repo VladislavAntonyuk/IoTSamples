@@ -15,6 +15,7 @@
 		<PackageReference Include="LiveStreamingServerNet.AdminPanelUI" Version="0.31.1" />
 		<PackageReference Include="LiveStreamingServerNet.Flv" Version="0.31.1" />
 		<PackageReference Include="LiveStreamingServerNet.Standalone" Version="0.31.1" />
+		<PackageReference Include="LiveStreamingServerNet.StreamProcessor.AspNetCore" Version="0.31.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

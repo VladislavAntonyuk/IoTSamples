@@ -1,5 +1,11 @@
 ﻿<MudNavMenu>
+    <AuthorizeView>
+        Hello @context.User.Identity?.Name!
+    </AuthorizeView>
+
 	<MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
     <MudNavLink Href="/ip-cameras" Match="NavLinkMatch.Prefix">IP Cameras</MudNavLink>
     <MudNavLink Href="/devices" Match="NavLinkMatch.Prefix">Devices</MudNavLink>
+
+    <MudNavLink Href="/account/logout" Match="NavLinkMatch.Prefix">Log Out</MudNavLink>
 </MudNavMenu>

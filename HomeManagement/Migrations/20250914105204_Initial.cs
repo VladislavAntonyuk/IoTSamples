@@ -15,8 +15,7 @@ namespace HomeManagement.Migrations
                 columns: table => new
                 {
                     Name = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    Ip = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
-                    UptimeSeconds = table.Column<int>(type: "INTEGER", nullable: false)
+                    Ip = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false)
                 },
                 constraints: table =>
                 {
