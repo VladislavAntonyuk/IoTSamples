@@ -10,14 +10,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HomeManagement.Migrations
 {
     [DbContext(typeof(HomeManagementDbContext))]
-    [Migration("20250914105204_Initial")]
+    [Migration("20251001124631_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.0-rc.1.25451.107");
 
             modelBuilder.Entity("HomeManagement.Device", b =>
                 {
@@ -51,6 +51,12 @@ namespace HomeManagement.Migrations
                             b1.Property<string>("Command")
                                 .IsRequired()
                                 .HasColumnType("TEXT");
+
+                            b1.Property<string>("CommandArgs")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<int>("CommandType")
+                                .HasColumnType("INTEGER");
 
                             b1.Property<string>("DeviceName")
                                 .IsRequired()

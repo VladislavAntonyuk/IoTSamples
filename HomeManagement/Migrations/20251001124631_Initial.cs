@@ -29,7 +29,9 @@ namespace HomeManagement.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     Action = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    CommandType = table.Column<int>(type: "INTEGER", nullable: false),
                     Command = table.Column<string>(type: "TEXT", nullable: false),
+                    CommandArgs = table.Column<string>(type: "TEXT", nullable: true),
                     DeviceName = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>

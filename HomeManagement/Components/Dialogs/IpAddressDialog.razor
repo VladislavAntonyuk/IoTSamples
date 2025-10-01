@@ -3,34 +3,48 @@
 @inherits ComponentBase
 
 <MudPaper Class="pa-4" Elevation="1" Style="min-width:320px;">
-    <MudStack Spacing="2">
-        <MudText Typo="Typo.h6">Add Device</MudText>
-        <MudTextField @bind-Value="Address" Label="Address" Required="true" Immediate="true" ErrorText="@error" Error="@(!string.IsNullOrEmpty(error))" />
-        <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
-            <MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="string.IsNullOrWhiteSpace(Address)" OnClick="Save">Add</MudButton>
-        </MudStack>
-    </MudStack>
+	<MudStack Spacing="2">
+		<MudText Typo="Typo.h6">Add Device</MudText>
+		<MudTextField @bind-Value="Address" Label="Address" Required="true" Immediate="true" ErrorText="@error" Error="@(!string.IsNullOrEmpty(error))" />
+		<MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
+			<MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
+			<MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="string.IsNullOrWhiteSpace(Address) || isBusy" OnClick="Save">
+				@if (isBusy)
+				{
+					<MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-1" />
+				}
+
+				Add
+			</MudButton>
+		</MudStack>
+	</MudStack>
 </MudPaper>
 
 @code {
-    [CascadingParameter] IMudDialogInstance DialogReference { get; set; } = default!;
-    private string Address { get; set; } = string.Empty;
+	[CascadingParameter] IMudDialogInstance DialogReference { get; set; } = default!;
+	private string Address { get; set; } = string.Empty;
 	private string? error;
+	bool isBusy;
 
-    private async Task Save()
-    {
-        if (string.IsNullOrWhiteSpace(Address)) return;
-        var address = Address.Trim();
-        var networkDevice = await NetworkManager.GetDeviceInfoAsync(address, CancellationToken.None);
-        if (networkDevice is null)
-        {
+	private async Task Save()
+	{
+		if (string.IsNullOrWhiteSpace(Address))
+		{
+			return;
+		}
+
+		isBusy = true;
+		var address = Address.Trim();
+		var networkDevice = await NetworkManager.GetDeviceInfoAsync(address, CancellationToken.None);
+		isBusy = false;
+		if (networkDevice is null)
+		{
 			error = "Could not reach device at this address.";
-            return;
-        }
+			return;
+		}
 
-        DialogReference.Close(DialogResult.Ok(networkDevice));
-    }
+		DialogReference.Close(DialogResult.Ok(networkDevice));
+	}
 
-    private void Cancel() => DialogReference.Close(DialogResult.Cancel());
+	private void Cancel() => DialogReference.Close(DialogResult.Cancel());
 }

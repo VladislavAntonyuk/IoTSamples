@@ -1,5 +1,4 @@
 ﻿@page "/devices"
-@using Microsoft.AspNetCore.Authorization
 @using Microsoft.EntityFrameworkCore
 @using HomeManagement.Components.Dialogs
 @inject ISnackbar Snackbar
@@ -36,11 +35,11 @@
 				var st = GetStatus(context.Name);
 				if (st is null || st.Loading)
 				{
-					<MudProgressCircular Indeterminate="true" Size="Size.Small" />;
+					<MudProgressCircular Indeterminate="true" Size="Size.Small" />
 				}
 				else
 				{
-					<MudChip T="string" Color="@(st.Online ? Color.Success : Color.Error)" Variant="Variant.Filled">@(st.Online ? "Online" : "Offline")</MudChip>;
+					<MudChip T="string" Color="@(st.Online? Color.Success: Color.Error)" Variant="Variant.Filled">@(st.Online ? "Online" : "Offline")</MudChip>
 				}
 			}
 		</MudTd>
@@ -51,9 +50,9 @@
 			@foreach (var action in context.Actions)
 			{
 				var st = GetStatus(context.Name);
-				var disabled = st is null || st.Loading || !st.Online || runningActions.Contains((context.Name, action.Action));
+				var disabled = st is null || st.Loading || !st.Online || runningActions.Contains((context.Name, action));
 				<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="@disabled" OnClick="@(() => RunAction(context, action))" Class="me-2 mb-1">
-					@if (runningActions.Contains((context.Name, action.Action)))
+					@if (runningActions.Contains((context.Name, action)))
 					{
 						<MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-1" />
 					}
@@ -81,7 +80,7 @@
 
 	private MudTable<Device> table = null!;
 	private readonly Dictionary<string, DeviceStatus> statuses = new();
-	private readonly HashSet<(string DeviceName, string Action)> runningActions = new();
+	private readonly HashSet<(string DeviceName, DeviceAction Action)> runningActions = new();
 
 	private async Task<TableData<Device>> ServerReload(TableState state, CancellationToken token)
 	{
@@ -107,9 +106,11 @@
 				st = new DeviceStatus();
 				statuses[device.Name] = st;
 			}
+
 			st.Loading = true;
 			tasks.Add(UpdateDeviceStatusAsync(device, st, token));
 		}
+
 		StateHasChanged();
 		await Task.WhenAll(tasks);
 		StateHasChanged();
@@ -148,20 +149,24 @@
 
 	private async Task RunAction(Device device, DeviceAction action)
 	{
-		var key = (device.Name, action.Action);
-		if (!runningActions.Add(key)) return;
+		var key = (device.Name, action);
+		if (!runningActions.Add(key))
+		{
+			return;
+		}
+
 		try
 		{
 			using var httpClient = new HttpClient();
-			var result = await httpClient.GetAsync($"http://{device.Ip}{action.Command}");
-			if (result.IsSuccessStatusCode)
+			httpClient.BaseAddress = new Uri($"http://{device.Ip}");
+			var result = action.CommandType switch
 			{
-				Snackbar.Add(await result.Content.ReadAsStringAsync(), Severity.Success);
-			}
-			else
-			{
-				Snackbar.Add(await result.Content.ReadAsStringAsync(), Severity.Error);
-			}
+				CommandType.Get => await httpClient.GetAsync($"{action.Command}?{action.CommandArgs}"),
+				CommandType.Post => await httpClient.PostAsync(action.Command, string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs)),
+				_ => throw new ArgumentOutOfRangeException()
+			};
+
+			Snackbar.Add(await result.Content.ReadAsStringAsync(), result.IsSuccessStatusCode ? Severity.Success : Severity.Error);
 		}
 		catch (Exception ex)
 		{
@@ -175,12 +180,28 @@
 
 	public static string FormatDuration(int? seconds)
 	{
-		if (seconds is null) return string.Empty;
+		if (seconds is null)
+		{
+			return string.Empty;
+		}
+
 		var ts = TimeSpan.FromSeconds(seconds.Value);
 		var parts = new List<string>();
-		if (ts.Days > 0) parts.Add($"{ts.Days}d");
-		if (ts.Hours > 0 || parts.Count > 0) parts.Add($"{ts.Hours}h");
-		if (ts.Minutes > 0 || parts.Count > 0) parts.Add($"{ts.Minutes}m");
+		if (ts.Days > 0)
+		{
+			parts.Add($"{ts.Days}d");
+		}
+
+		if (ts.Hours > 0 || parts.Count > 0)
+		{
+			parts.Add($"{ts.Hours}h");
+		}
+
+		if (ts.Minutes > 0 || parts.Count > 0)
+		{
+			parts.Add($"{ts.Minutes}m");
+		}
+
 		parts.Add($"{ts.Seconds}s");
 		return string.Join(" ", parts);
 	}
@@ -189,10 +210,17 @@
 	{
 		var dialog = await DialogService.ShowAsync<ScanDevicesDialog>("Scan Network");
 		var result = await dialog.Result;
-		if (result is null || result.Canceled == true) return;
+		if (result is null || result.Canceled)
+		{
+			return;
+		}
 
 		var devices = (List<NetworkDevice>)result.Data!;
-		if (devices.Count == 0) return;
+		if (devices.Count == 0)
+		{
+			return;
+		}
+
 		try
 		{
 			await using var dbContext = await DbContextFactory.CreateDbContextAsync();
@@ -211,11 +239,15 @@
 		}
 	}
 
-	private async void Add()
+	private async Task Add()
 	{
 		var dialog = await DialogService.ShowAsync<IpAddressDialog>("Enter Address");
 		var result = await dialog.Result;
-		if (result is null || result.Canceled == true) return;
+		if (result is null || result.Canceled)
+		{
+			return;
+		}
+
 		var device = (NetworkDevice)result.Data!;
 		try
 		{
@@ -240,12 +272,15 @@
 			{
 				Name = device.Name,
 				Ip = device.Ip,
-				Actions = device.Actions.Select(a => new DeviceActionEditModel { Action = a.Action, Command = a.Command }).ToList()
+				Actions = device.Actions.Select(a => new DeviceActionEditModel { Action = a.Action, Command = a.Command, CommandArgs = a.CommandArgs, CommandType = a.CommandType }).ToList()
 			}
 		};
 		var dialog = await DialogService.ShowAsync<DeviceEditDialog>($"Edit {device.Name}", parameters);
 		var result = await dialog.Result;
-		if (result is null || result.Canceled == true) return;
+		if (result is null || result.Canceled)
+		{
+			return;
+		}
 
 		var model = (DeviceEditModel)result.Data!;
 		try
@@ -262,7 +297,7 @@
 			{
 				Name = model.Name,
 				Ip = model.Ip,
-				Actions = model.Actions.Select(a => new DeviceAction(a.Action, a.Command)).ToList()
+				Actions = model.Actions.Select(a => new DeviceAction(a.Action, a.CommandType, a.Command, a.CommandArgs)).ToList()
 			};
 			dbContext.Devices.Add(replacement);
 			await dbContext.SaveChangesAsync();

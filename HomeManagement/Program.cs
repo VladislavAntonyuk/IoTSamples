@@ -45,7 +45,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddLiveStreamingServer(
     new IPEndPoint(IPAddress.Any, 1935),
     options => options
-    .AddAuthorizationHandler<DemoAuthorizationHandler>()
+    .AddAuthorizationHandler<StreamAuthorizationHandler>()
     .AddStandaloneServices()
     .AddFlv()
     .AddStreamProcessor()
@@ -68,6 +68,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
 app.UseAuthentication();
@@ -138,8 +139,16 @@ app.MapPost("api/account/login", async (
 
     static string NormalizeReturnUrl(string? ru)
     {
-        if (string.IsNullOrWhiteSpace(ru)) return "/";
-        if (Uri.TryCreate(ru, UriKind.Relative, out _)) return ru;
+        if (string.IsNullOrWhiteSpace(ru))
+        {
+            return "/";
+        }
+
+        if (Uri.TryCreate(ru, UriKind.Relative, out _))
+        {
+            return ru;
+        }
+
         return "/";
     }
 });

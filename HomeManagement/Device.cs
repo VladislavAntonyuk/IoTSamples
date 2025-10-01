@@ -9,4 +9,10 @@ public class Device
     public IList<DeviceAction> Actions { get; init; } = [];
 }
 
-public record DeviceAction(string Action, string Command);
+public record DeviceAction(string Action, CommandType CommandType, string Command, string? CommandArgs = null);
+
+public enum CommandType
+{
+    Get,
+    Post
+}

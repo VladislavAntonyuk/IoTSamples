@@ -14,7 +14,7 @@ namespace HomeManagement.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.0-rc.1.25451.107");
 
             modelBuilder.Entity("HomeManagement.Device", b =>
                 {
@@ -48,6 +48,12 @@ namespace HomeManagement.Migrations
                             b1.Property<string>("Command")
                                 .IsRequired()
                                 .HasColumnType("TEXT");
+
+                            b1.Property<string>("CommandArgs")
+                                .HasColumnType("TEXT");
+
+                            b1.Property<int>("CommandType")
+                                .HasColumnType("INTEGER");
 
                             b1.Property<string>("DeviceName")
                                 .IsRequired()

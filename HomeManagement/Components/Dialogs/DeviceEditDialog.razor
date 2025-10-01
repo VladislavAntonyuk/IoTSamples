@@ -20,7 +20,9 @@
             <MudPaper Class="pa-2 my-2" Elevation="0">
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                     <MudTextField @bind-Value="action.Action" Label="Action" Required="true" />
+                    <MudTextField @bind-Value="action.CommandType" Label="Command Type" Required="true" />
                     <MudTextField @bind-Value="action.Command" Label="Command" Required="true" />
+                    <MudTextField @bind-Value="action.CommandArgs" Label="Command Args" Required="false" />
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="() => RemoveAction(index)" />
                 </MudStack>
             </MudPaper>
