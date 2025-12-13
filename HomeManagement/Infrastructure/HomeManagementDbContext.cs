@@ -1,6 +1,7 @@
+using HomeManagement.Application.DeviceManagement;
 using Microsoft.EntityFrameworkCore;
 
-namespace HomeManagement;
+namespace HomeManagement.Infrastructure;
 
 public class HomeManagementDbContext(DbContextOptions<HomeManagementDbContext> options) : DbContext(options)
 {

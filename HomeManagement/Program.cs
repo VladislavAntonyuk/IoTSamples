@@ -1,5 +1,6 @@
-using HomeManagement;
+using HomeManagement.Application.Login;
 using HomeManagement.Components;
+using HomeManagement.Infrastructure;
 using LiveStreamingServerNet;
 using LiveStreamingServerNet.AdminPanelUI;
 using LiveStreamingServerNet.Flv.Installer;
@@ -7,15 +8,18 @@ using LiveStreamingServerNet.Standalone;
 using LiveStreamingServerNet.Standalone.Installer;
 using LiveStreamingServerNet.StreamProcessor.AspNetCore.Installer;
 using LiveStreamingServerNet.StreamProcessor.Installer;
+using MailerSendNetCore.Common.Extensions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MudBlazor.Services;
+using Scalar.AspNetCore;
 using System.Net;
 using System.Security.Claims;
+using System.Text.Json.Serialization;
+using HomeManagement.Application.WebHooks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +29,9 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.Configure<StaticAuthOptions>(builder.Configuration.GetSection("Auth"));
+builder.Services.Configure<PowerIsBackTelegramSettings>(builder.Configuration.GetSection("PowerIsBackTelegramSettings"));
+builder.Services.Configure<PowerIsBackEmailSettings>(builder.Configuration.GetSection("PowerIsBackEmailSettings"));
+builder.Services.AddMailerSendEmailClient(builder.Configuration.GetSection("PowerIsBackEmailSettings"));
 
 // Cookie authentication only (no Identity)
 builder.Services
@@ -52,6 +59,14 @@ builder.Services.AddLiveStreamingServer(
     .AddHlsTransmuxer()
 );
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<WebHookHandler>();
+builder.Services.AddKeyedScoped<IHandler, PowerIsBackTelegramHandler>(WebHookActions.PowerOn);
+builder.Services.AddKeyedScoped<IHandler, PowerIsBackEmailHandler>(WebHookActions.PowerOn);
+
+builder.Services.ConfigureHttpJsonOptions(options => {
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -67,6 +82,10 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
+app.MapOpenApi();
+
+app.MapScalarApiReference();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
@@ -106,6 +125,22 @@ app.UseAdminPanelUI(new AdminPanelUIOptions
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+app.MapPost("api/webhook", async (
+    IOptions<StaticAuthOptions> authOptions,
+    [FromHeader] string key,
+    [FromBody] WebHookModel model,
+    WebHookHandler handler) =>
+{
+    var cfg = authOptions.Value;
+    if (key == cfg.Key)
+    {
+        var executionResult = await handler.Handle(model);
+        return executionResult.IsSuccessful ? Results.Ok() : Results.InternalServerError();
+    }
+
+    return TypedResults.Unauthorized();
+});
+
 app.MapPost("api/account/login", async (
     HttpContext context,
     IOptions<StaticAuthOptions> authOptions,
@@ -125,7 +160,7 @@ app.MapPost("api/account/login", async (
         var principal = new ClaimsPrincipal(identity);
         var props = new AuthenticationProperties
         {
-            IsPersistent = remember == true,
+            IsPersistent = remember,
             ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
         };
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
@@ -137,16 +172,16 @@ app.MapPost("api/account/login", async (
     var redirect = "/Account/Login?error=1" + (string.IsNullOrWhiteSpace(returnUrl) ? "" : $"&returnUrl={Uri.EscapeDataString(returnUrl)}");
     return Results.Redirect(redirect);
 
-    static string NormalizeReturnUrl(string? ru)
+    static string NormalizeReturnUrl(string? returnUrl)
     {
-        if (string.IsNullOrWhiteSpace(ru))
+        if (string.IsNullOrWhiteSpace(returnUrl))
         {
             return "/";
         }
 
-        if (Uri.TryCreate(ru, UriKind.Relative, out _))
+        if (Uri.TryCreate(returnUrl, UriKind.Relative, out _))
         {
-            return ru;
+            return returnUrl;
         }
 
         return "/";

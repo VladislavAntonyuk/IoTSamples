@@ -1,4 +1,4 @@
-namespace HomeManagement;
+namespace HomeManagement.Application.Login;
 
 public class StaticAuthOptions
 {

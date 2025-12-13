@@ -2,6 +2,8 @@ using LiveStreamingServerNet.Networking.Contracts;
 using LiveStreamingServerNet.Rtmp.Server.Auth;
 using LiveStreamingServerNet.Rtmp.Server.Auth.Contracts;
 
+namespace HomeManagement.Application.Login;
+
 public class StreamAuthorizationHandler(IHttpContextAccessor httpContextAccessor) : IAuthorizationHandler
 {
     public Task<AuthorizationResult> AuthorizePublishingAsync(

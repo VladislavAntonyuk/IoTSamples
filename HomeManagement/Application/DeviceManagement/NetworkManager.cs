@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace HomeManagement;
+namespace HomeManagement.Application.DeviceManagement;
 
 public class NetworkManager
 {

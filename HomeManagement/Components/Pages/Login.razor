@@ -12,13 +12,3 @@
 	<MudCheckBox T="bool" @bind-Value="RememberMe" Label="Remember Me"/>
 	<MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Login</MudButton>
 </form>
-
-@code {
-
-	private string? Username { get; set; }
-	private string? Key { get; set; }
-	private bool RememberMe { get; set; }
-
-	[SupplyParameterFromQuery(Name = "returnUrl")]
-	public string? ReturnUrl { get; set; }
-}

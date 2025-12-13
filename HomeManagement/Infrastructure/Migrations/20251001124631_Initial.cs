@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace HomeManagement.Migrations
+namespace HomeManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
     public partial class Initial : Migration

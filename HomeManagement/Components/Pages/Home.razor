@@ -1,9 +1,5 @@
 ﻿@page "/"
-@inject ISnackbar Snackbar
-@inject IDbContextFactory<HomeManagementDbContext> DbContextFactory
-@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
-@using System.Diagnostics
 
 <PageTitle>Home</PageTitle>
 
@@ -13,7 +9,7 @@
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Total Devices</MudText>
-					<MudText Typo="Typo.h4">@totalDevices</MudText>
+					<MudText Typo="Typo.h4">@_totalDevices</MudText>
 				</MudStack>
 			</MudCard>
 		</MudItem>
@@ -21,7 +17,7 @@
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Local IP</MudText>
-					<MudText Typo="Typo.h6">@localIp</MudText>
+					<MudText Typo="Typo.h6">@_localIp</MudText>
 				</MudStack>
 			</MudCard>
 		</MudItem>
@@ -29,7 +25,7 @@
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Uptime</MudText>
-					<MudText Typo="Typo.h6">@uptime</MudText>
+					<MudText Typo="Typo.h6">@_uptime</MudText>
 				</MudStack>
 			</MudCard>
 		</MudItem>
@@ -37,7 +33,7 @@
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Disk Space</MudText>
-					<MudText Typo="Typo.body2">@diskSpace</MudText>
+					<MudText Typo="Typo.body2">@_diskSpace</MudText>
 				</MudStack>
 			</MudCard>
 		</MudItem>
@@ -45,7 +41,7 @@
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Network Data</MudText>
-					<MudText Typo="Typo.body2" Style="max-width: 250px; white-space: pre-wrap; word-break: break-all;">@networkData</MudText>
+					<MudText Typo="Typo.body2" Style="max-width: 250px; white-space: pre-wrap; word-break: break-all;">@_networkData</MudText>
 				</MudStack>
 			</MudCard>
 		</MudItem>
@@ -53,7 +49,7 @@
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">CPU Info</MudText>
-					<MudText Typo="Typo.body2" Style="max-width: 250px; white-space: pre-wrap; word-break: break-all;">@cpuInfo</MudText>
+					<MudText Typo="Typo.body2" Style="max-width: 250px; white-space: pre-wrap; word-break: break-all;">@_cpuInfo</MudText>
 				</MudStack>
 			</MudCard>
 		</MudItem>
@@ -74,201 +70,13 @@
 			<MudPaper Class="pa-4" Elevation="1">
 				<MudText Typo="Typo.h6" Class="mb-2">Terminal</MudText>
 				<MudStack Spacing="1">
-					<MudTextField @bind-Value="terminalCommand" Placeholder="Enter command..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Terminal" Class="terminal-input" OnKeyDown="OnTerminalKeyDown" />
+					<MudTextField @bind-Value="_terminalCommand" Placeholder="Enter command..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Terminal" Class="terminal-input" OnKeyDown="OnTerminalKeyDown" />
 					<MudButton OnClick="RunTerminalCommand" Color="Color.Primary" Variant="Variant.Filled">Run</MudButton>
 					<MudPaper Class="terminal-output pa-2 mt-2" Style="background:black;color:#39ff14;font-family:monospace;min-height:100px;max-height:300px;overflow:auto;">
-						@terminalOutput
+						@_terminalOutput
 					</MudPaper>
 				</MudStack>
 			</MudPaper>
 		</MudItem>
 	</MudGrid>
 </MudContainer>
-
-@code {
-	private int totalDevices;
-	private string? localIp;
-	private string? uptime;
-	private string? diskSpace;
-	private string? networkData;
-	private string? cpuInfo;
-
-	protected override async Task OnInitializedAsync()
-	{
-		localIp = NetworkManager.GetLocalIp();
-		uptime = GetUptime();
-		diskSpace = GetDiskSpace();
-		networkData = GetNetworkData();
-		cpuInfo = GetCpuInfo();
-		await using var db = await DbContextFactory.CreateDbContextAsync();
-		totalDevices = await db.Devices.CountAsync();
-	}
-
-	private string? GetUptime()
-	{
-		try
-		{
-			var process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = "uptime",
-					Arguments = "-p",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				}
-			};
-			process.Start();
-			var output = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return output.Trim();
-		}
-		catch
-		{
-			return null;
-		}
-	}
-
-	private string? GetDiskSpace()
-	{
-		try
-		{
-			var process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = "df",
-					Arguments = "-T -h",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				}
-			};
-			process.Start();
-			var output = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return output.Trim();
-		}
-		catch { return null; }
-	}
-
-	private string? GetNetworkData()
-	{
-		try
-		{
-			var process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = "ip",
-					Arguments = "-s addr show",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				}
-			};
-			process.Start();
-			var output = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return output.Trim();
-		}
-		catch { return null; }
-	}
-
-	private string? GetCpuInfo()
-	{
-		try
-		{
-			var process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = "cat",
-					Arguments = "/proc/cpuinfo",
-					RedirectStandardOutput = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				}
-			};
-			process.Start();
-			var output = process.StandardOutput.ReadToEnd();
-			process.WaitForExit();
-			return output.Trim();
-		}
-		catch { return null; }
-	}
-
-	private void Reboot()
-	{
-		try
-		{
-			Process.Start("reboot");
-			Snackbar.Add("Rebooting...", Severity.Success);
-		}
-		catch (Exception e)
-		{
-			Snackbar.Add(e.Message, Severity.Error);
-		}
-	}
-
-	private void Shutdown()
-	{
-		try
-		{
-			Process.Start("poweroff");
-			Snackbar.Add("Shutting down...", Severity.Success);
-		}
-		catch (Exception e)
-		{
-			Snackbar.Add(e.Message, Severity.Error);
-		}
-	}
-
-	private string terminalCommand = string.Empty;
-	private string terminalOutput = string.Empty;
-
-	private async Task RunTerminalCommand()
-	{
-		if (string.IsNullOrWhiteSpace(terminalCommand))
-		{
-			return;
-		}
-
-		try
-		{
-			var parts = terminalCommand.Split(' ', 2);
-			var fileName = parts[0];
-			var arguments = parts.Length > 1 ? parts[1] : string.Empty;
-			var process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
-					FileName = fileName,
-					Arguments = arguments,
-					RedirectStandardOutput = true,
-					RedirectStandardError = true,
-					UseShellExecute = false,
-					CreateNoWindow = true
-				}
-			};
-			process.Start();
-			var output = await process.StandardOutput.ReadToEndAsync();
-			var error = await process.StandardError.ReadToEndAsync();
-			await process.WaitForExitAsync();
-			terminalOutput = $"> {terminalCommand}{Environment.NewLine}{output}{(string.IsNullOrWhiteSpace(error) ? "" : Environment.NewLine + error)}";
-		}
-		catch (Exception ex)
-		{
-			terminalOutput = $"> {terminalCommand}{Environment.NewLine}Error: {ex.Message}";
-		}
-	}
-
-	private async Task OnTerminalKeyDown(KeyboardEventArgs e)
-	{
-		if (e.Key == "Enter")
-		{
-			await RunTerminalCommand();
-		}
-	}
-}

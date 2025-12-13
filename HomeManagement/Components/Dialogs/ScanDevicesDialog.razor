@@ -7,7 +7,7 @@
 <MudPaper Class="pa-4" Elevation="1" Style="min-width:500px;max-width:800px;">
 	<MudStack Spacing="2">
 		<MudText Typo="Typo.h6">Discovered Devices</MudText>
-		<MudTable T="SelectableDevice" Items="devices" Dense="true" Hover="true" Bordered="true" Class="my-2">
+		<MudTable T="SelectableDevice" Items="_devices" Dense="true" Hover="true" Bordered="true" Class="my-2">
 			<HeaderContent>
 				<MudTh></MudTh>
 				<MudTh>IP</MudTh>
@@ -24,10 +24,10 @@
 				<MudText>No devices found</MudText>
 			</NoRecordsContent>
 		</MudTable>
-		<MudProgressCircular Indeterminate="true" Style="@(loading ? "" : "display:none;")" />
+		<MudProgressCircular Indeterminate="true" Style="@(_loading ? "" : "display:none;")" />
 		<MudStack Row="true" Justify="Justify.FlexEnd" Spacing="2">
 			<MudButton Variant="Variant.Text" Color="Color.Secondary" OnClick="Cancel">Cancel</MudButton>
-			<MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!devices.Any(d => d.Selected))" OnClick="Save">Add Selected</MudButton>
+			<MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(!_devices.Any(d => d.Selected))" OnClick="Save">Add Selected</MudButton>
 		</MudStack>
 	</MudStack>
 </MudPaper>
@@ -35,34 +35,34 @@
 @code {
 	[CascadingParameter] IMudDialogInstance DialogReference { get; set; } = default!;
 
-	private List<SelectableDevice> devices = new();
-	private bool loading = true;
+	private List<SelectableDevice> _devices = new();
+	private bool _loading = true;
 
 	protected override async Task OnInitializedAsync()
 	{
 		try
 		{
-			var baseIP = NetworkManager.GetLocalSubnet();
-			if (baseIP is null)
+			var baseIp = NetworkManager.GetLocalSubnet();
+			if (baseIp is null)
 			{
 				Snackbar.Add("No active IPv4 network interface found.", Severity.Error);
 				return;
 			}
 
-			var networkDevices = await NetworkManager.ScanNetworkAsync(baseIP, 100, CancellationToken.None);
+			var networkDevices = await NetworkManager.ScanNetworkAsync(baseIp, 100, CancellationToken.None);
 
-			devices = networkDevices.Select(d => new SelectableDevice { Device = d }).ToList();
+			_devices = networkDevices.Select(d => new SelectableDevice { Device = d }).ToList();
 		}
 		catch { }
 		finally
 		{
-			loading = false;
+			_loading = false;
 		}
 	}
 
 	private void Save()
 	{
-		var chosen = devices.Where(d => d.Selected).Select(d => d.Device).ToList();
+		var chosen = _devices.Where(d => d.Selected).Select(d => d.Device).ToList();
 		DialogReference.Close(DialogResult.Ok(chosen));
 	}
 
