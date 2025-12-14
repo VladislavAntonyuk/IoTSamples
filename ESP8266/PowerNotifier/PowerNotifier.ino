@@ -1,68 +1,111 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
-#include <WiFiClientSecure.h>
-#include <UniversalTelegramBot.h>
+#include <ESP8266WebServer.h>
 
 const char* name = "YOUR DEVICE NAME";
 const char* ssid = "YOUR SSID";
 const char* password = "YOUR_PASSWORD";
-const char* botToken = "YOUR_BOT_TOKEN";  // Token from BotFather
-const char* chatId = "YOUR_CHAT_ID";  // Your Telegram chat ID
+const char* webhookHost = "192.168.1.1";
+const char* webhookPath = "/api/webhook";
+const char* webhookKey = "key";
 
-WiFiClientSecure client;
-UniversalTelegramBot bot(botToken, client);
+WiFiClient client;
+ESP8266WebServer server(80);
+String status = "Not connected";
 
-void connectToInternet() {
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Connecting to WiFi...");
+void ensureWiFiConnected() {
+  if (!WiFi.isConnected()) {
+    setStatus("WiFi disconnected, reconnecting...");
+    WiFi.reconnect();
+  } else {
+    setStatus("Connected! IP: " + WiFi.localIP().toString());
   }
-
-  Serial.println("");
-  Serial.print("Connected! IP: ");
-  Serial.println(WiFi.localIP());
-
-  while (!isTelegramAvailable()) {
-    Serial.print("Waiting for Telegram...");
-    delay(1000);
-  }
-
-  Serial.println("Connected to the Internet");
 }
 
-bool isTelegramAvailable() {
-  WiFiClientSecure testClient;
-  testClient.setInsecure();
+bool sendWebhookMessage(const char* action) {
+  String payload = "{\"action\": \"";
+  payload += action;
+  payload += "\"}";
 
-  if (!testClient.connect("api.telegram.org", 443)) {
+  String request = "POST ";
+  request += webhookPath;
+  request += " HTTP/1.1\r\n";
+  request += "Host: ";
+  request += webhookHost;
+  request += "\r\n";
+  request += "Content-Type: application/json\r\n";
+  request += "Content-Length: ";
+  request += payload.length();
+  request += "\r\n";
+  request += "key: ";
+  request += webhookKey;
+  request += "\r\n";
+  request += "\r\n";
+  request += payload;
+  
+  if (!client.connect(webhookHost, 80)) {
+    setStatus("Failed to connect to webhook host");
     return false;
   }
 
-  testClient.stop();
-  return true;
+  setStatus("Connected! Sending request...");
+  size_t expected = request.length();
+  size_t sent = client.print(request);
+  client.flush();
+
+  setStatus("Bytes sent: " + String(sent) + " / " + String(expected));
+
+  bool success = (sent == expected);
+  client.stop();
+  return success;
+}
+
+void handleGetStatus() {
+  server.send(200, "text/plain", status);
+}
+
+void setStatus(String sts){
+  status = sts;
+  Serial.println(sts);
 }
 
 void setup() {
   Serial.begin(9600);
 
-  connectToInternet();
+  WiFi.begin(ssid, password);
+  
+  // Wait for WiFi to connect before starting MDNS and server
+  while (!WiFi.isConnected()) {
+    setStatus("Waiting for WiFi connection...");
+    delay(500);
+  }
 
-  MDNS.begin(name);  // Access via http://second.local/
-
-  client.setInsecure();  // Simplified TLS for HTTP API Telegram
+  if (MDNS.begin(name)) {
+    setStatus("mDNS started");
+  } else {
+    setStatus("Error starting mDNS");
+  }
+  
+  server.on("/", HTTP_GET, handleGetStatus);
+  server.begin();
 }
 
 void loop() {
   MDNS.update();
-  bool ok = bot.sendMessage(chatId, "Power is back", "");
-
-  if (ok) {
-    Serial.println("Message sent successfully!");
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_OFF);
-    ESP.deepSleep(0);
-  } else {
-    Serial.println("Failed to send message!");
+  server.handleClient();
+  
+  ensureWiFiConnected();
+  
+  if (WiFi.isConnected()) {
+    bool ok = sendWebhookMessage("PowerOn");
+    if (ok) {
+      setStatus("Webhook message sent successfully!");
+      WiFi.disconnect(true);
+      ESP.deepSleep(0);
+    } else {
+      setStatus("Failed to send webhook message, will retry...");
+    }
   }
+  
+  delay(1000);
 }

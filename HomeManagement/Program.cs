@@ -19,6 +19,7 @@ using Scalar.AspNetCore;
 using System.Net;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
+using System.Threading.Channels;
 using HomeManagement.Application.WebHooks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -59,9 +60,14 @@ builder.Services.AddLiveStreamingServer(
     .AddHlsTransmuxer()
 );
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<WebHookHandler>();
 builder.Services.AddKeyedScoped<IHandler, PowerIsBackTelegramHandler>(WebHookActions.PowerOn);
 builder.Services.AddKeyedScoped<IHandler, PowerIsBackEmailHandler>(WebHookActions.PowerOn);
+builder.Services.AddSingleton(_ => Channel.CreateBounded<WebHookActions>(new BoundedChannelOptions(100)
+{
+    FullMode = BoundedChannelFullMode.Wait
+}));
+
+builder.Services.AddHostedService<WebHookMessageProcessor>();
 
 builder.Services.ConfigureHttpJsonOptions(options => {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -129,16 +135,17 @@ app.MapPost("api/webhook", async (
     IOptions<StaticAuthOptions> authOptions,
     [FromHeader] string key,
     [FromBody] WebHookModel model,
-    WebHookHandler handler) =>
+    Channel<WebHookActions> channel,
+    CancellationToken token) =>
 {
     var cfg = authOptions.Value;
     if (key == cfg.Key)
     {
-        var executionResult = await handler.Handle(model);
-        return executionResult.IsSuccessful ? Results.Ok() : Results.InternalServerError();
+        await channel.Writer.WriteAsync(model.Action, token);
+        return Results.Ok();
     }
 
-    return TypedResults.Unauthorized();
+    return Results.Json(new { error = "Unauthorized" }, statusCode: 401);
 });
 
 app.MapPost("api/account/login", async (

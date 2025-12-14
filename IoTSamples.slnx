@@ -5,6 +5,11 @@
     </Project>
     <Project Path="BluetoothGpioController/BluetoothGpioController/BluetoothGpioController.csproj" />
   </Folder>
+  <Folder Name="/ESP/">
+    <File Path="ESP8266/PowerNotifier/PowerNotifier.ino" />
+    <File Path="ESP8266/README.md" />
+    <File Path="ESP8266/WifiLamp/WifiLamp.ino" />
+  </Folder>
   <Folder Name="/IPCamera/">
     <Project Path="IPCamera/IpCameraMaui/IpCameraMaui.csproj">
       <Deploy />
