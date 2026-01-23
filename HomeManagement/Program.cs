@@ -9,15 +9,11 @@ using LiveStreamingServerNet.Standalone.Installer;
 using LiveStreamingServerNet.StreamProcessor.AspNetCore.Installer;
 using LiveStreamingServerNet.StreamProcessor.Installer;
 using MailerSendNetCore.Common.Extensions;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using Scalar.AspNetCore;
 using System.Net;
-using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using HomeManagement.Application.WebHooks;
@@ -93,6 +89,8 @@ app.MapOpenApi();
 
 app.MapScalarApiReference();
 
+app.MapLogin();
+app.MapWebHook();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
@@ -130,75 +128,5 @@ app.UseAdminPanelUI(new AdminPanelUIOptions
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-app.MapPost("api/webhook", async (
-    IOptions<StaticAuthOptions> authOptions,
-    [FromHeader] string key,
-    [FromBody] WebHookModel model,
-    Channel<WebHookActions> channel,
-    CancellationToken token) =>
-{
-    var cfg = authOptions.Value;
-    if (key == cfg.Key)
-    {
-        await channel.Writer.WriteAsync(model.Action, token);
-        return Results.Ok();
-    }
-
-    return Results.Json(new { error = "Unauthorized" }, statusCode: 401);
-});
-
-app.MapPost("api/account/login", async (
-    HttpContext context,
-    IOptions<StaticAuthOptions> authOptions,
-    [FromForm] string username,
-    [FromForm] string key,
-    [FromForm] bool remember,
-    [FromForm] string? returnUrl) =>
-{
-    var cfg = authOptions.Value;
-    if (key == cfg.Key)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.Name, username)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-        var props = new AuthenticationProperties
-        {
-            IsPersistent = remember,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddDays(30)
-        };
-        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal, props);
-
-        var target = NormalizeReturnUrl(returnUrl);
-        return Results.Redirect(target);
-    }
-
-    var redirect = "/Account/Login?error=1" + (string.IsNullOrWhiteSpace(returnUrl) ? "" : $"&returnUrl={Uri.EscapeDataString(returnUrl)}");
-    return Results.Redirect(redirect);
-
-    static string NormalizeReturnUrl(string? returnUrl)
-    {
-        if (string.IsNullOrWhiteSpace(returnUrl))
-        {
-            return "/";
-        }
-
-        if (Uri.TryCreate(returnUrl, UriKind.Relative, out _))
-        {
-            return returnUrl;
-        }
-
-        return "/";
-    }
-});
-
-app.MapPost("api/account/logout", async (HttpContext ctx) =>
-{
-    await ctx.SignOutAsync();
-    return Results.Redirect("/");
-});
 
 await app.RunAsync();
