@@ -17,7 +17,7 @@
 		<PackageReference Include="LiveStreamingServerNet.Flv" Version="0.33.1" />
 		<PackageReference Include="LiveStreamingServerNet.Standalone" Version="0.33.1" />
 		<PackageReference Include="LiveStreamingServerNet.StreamProcessor.AspNetCore" Version="0.33.1" />
-		<PackageReference Include="MailerSendNetCore" Version="0.1.0" />
+		<PackageReference Include="Mailjet.Api" Version="3.0.1" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.2">
 		  <PrivateAssets>all</PrivateAssets>

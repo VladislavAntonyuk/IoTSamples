@@ -8,7 +8,6 @@ using LiveStreamingServerNet.Standalone;
 using LiveStreamingServerNet.Standalone.Installer;
 using LiveStreamingServerNet.StreamProcessor.AspNetCore.Installer;
 using LiveStreamingServerNet.StreamProcessor.Installer;
-using MailerSendNetCore.Common.Extensions;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -28,7 +27,6 @@ builder.Services.AddRazorComponents()
 builder.Services.Configure<StaticAuthOptions>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<PowerIsBackTelegramSettings>(builder.Configuration.GetSection("PowerIsBackTelegramSettings"));
 builder.Services.Configure<PowerIsBackEmailSettings>(builder.Configuration.GetSection("PowerIsBackEmailSettings"));
-builder.Services.AddMailerSendEmailClient(builder.Configuration.GetSection("PowerIsBackEmailSettings"));
 
 // Cookie authentication only (no Identity)
 builder.Services
