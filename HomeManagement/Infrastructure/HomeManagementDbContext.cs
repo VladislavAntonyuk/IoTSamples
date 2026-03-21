@@ -1,4 +1,5 @@
 using HomeManagement.Application.DeviceManagement;
+using HomeManagement.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace HomeManagement.Infrastructure;

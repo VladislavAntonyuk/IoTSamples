@@ -1,4 +1,4 @@
-namespace HomeManagement.Application.DeviceManagement;
+namespace HomeManagement.Shared;
 
 public class Device
 {

@@ -1,10 +1,11 @@
 ﻿using System.Net.NetworkInformation;
-using HomeManagement.Application.DeviceManagement;
 using HomeManagement.Components.Dialogs;
 using HomeManagement.Infrastructure;
+using HomeManagement.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
+using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
 

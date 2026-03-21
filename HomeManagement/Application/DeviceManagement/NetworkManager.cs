@@ -3,6 +3,7 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using HomeManagement.Shared;
 
 namespace HomeManagement.Application.DeviceManagement;
 

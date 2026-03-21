@@ -1,3 +1,5 @@
+using HomeManagement.Shared;
+
 namespace HomeManagement.Components.Dialogs;
 
 public class SelectableDevice

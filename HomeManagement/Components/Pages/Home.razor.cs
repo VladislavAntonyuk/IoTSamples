@@ -1,10 +1,11 @@
 ﻿using System.Diagnostics;
-using HomeManagement.Application.DeviceManagement;
 using HomeManagement.Infrastructure;
+using HomeManagement.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
+using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
 
@@ -30,7 +31,7 @@ public partial class Home(
         _totalDevices = await db.Devices.CountAsync();
     }
 
-    private string? GetUptime()
+    static string? GetUptime()
     {
         try
         {
