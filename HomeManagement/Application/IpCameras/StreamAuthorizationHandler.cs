@@ -1,9 +1,10 @@
+using HomeManagement.Application.Login;
 using LiveStreamingServerNet.Networking.Contracts;
 using LiveStreamingServerNet.Rtmp.Server.Auth;
 using LiveStreamingServerNet.Rtmp.Server.Auth.Contracts;
 using Microsoft.Extensions.Options;
 
-namespace HomeManagement.Application.Login;
+namespace HomeManagement.Application.IpCameras;
 
 public class StreamAuthorizationHandler(IHttpContextAccessor httpContextAccessor, IOptions<StaticAuthOptions> authOptions) : IAuthorizationHandler
 {

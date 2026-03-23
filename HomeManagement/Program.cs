@@ -16,6 +16,8 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using HomeManagement.Application.WebHooks;
+using LiveStreamingServerNet.StreamProcessor.Utilities;
+using HomeManagement.Application.IpCameras;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -52,6 +54,15 @@ builder.Services.AddLiveStreamingServer(
     .AddFlv()
     .AddStreamProcessor()
     .AddHlsTransmuxer()
+    .AddFFmpeg(configure =>
+        configure.ConfigureDefault(configuration =>
+        {
+            configuration.Name = "mp4-archive";
+            configuration.FFmpegPath = ExecutableFinder.FindExecutableFromPATH("ffmpeg")!;
+            configuration.FFmpegArguments = "-i {inputPath} -c:v libx264 -c:a aac -preset ultrafast -movflags +frag_keyframe+empty_moov+default_base_moof -f mp4 {outputPath}";
+            configuration.OutputPathResolver = new Mp4OutputPathResolver(Path.Combine(Directory.GetCurrentDirectory(), "mp4-archive"));
+        })
+    )
 );
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddKeyedScoped<IHandler, PowerIsBackTelegramHandler>(WebHookActions.PowerOn);
