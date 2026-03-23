@@ -57,10 +57,18 @@ builder.Services.AddLiveStreamingServer(
     .AddFFmpeg(configure =>
         configure.ConfigureDefault(configuration =>
         {
-            configuration.Name = "mp4-archive";
+            configuration.Name = "live-camera-archive";
             configuration.FFmpegPath = ExecutableFinder.FindExecutableFromPATH("ffmpeg")!;
-            configuration.FFmpegArguments = "-i {inputPath} -c:v libx264 -c:a aac -preset ultrafast -movflags +frag_keyframe+empty_moov+default_base_moof -f mp4 {outputPath}";
-            configuration.OutputPathResolver = new Mp4OutputPathResolver(Path.Combine(Directory.GetCurrentDirectory(), "mp4-archive"));
+            configuration.FFmpegArguments =
+                "-i {inputPath} " +
+                "-c:v libx264 -preset ultrafast -tune zerolatency " +
+                "-b:v 290k -maxrate 290k -bufsize 580k " +
+                "-r 10 -g 20 -keyint_min 20 -sc_threshold 0 " +
+                "-force_key_frames \"expr:gte(t,n_forced*2)\" " +
+                "-pix_fmt yuv420p " +
+                "-c:a aac -b:a 32k " +
+                "-f mpegts {outputPath}";
+            configuration.OutputPathResolver = new LiveCameraOutputPathResolver(Path.Combine(Directory.GetCurrentDirectory(), "live-camera-archive"));
         })
     )
 );
