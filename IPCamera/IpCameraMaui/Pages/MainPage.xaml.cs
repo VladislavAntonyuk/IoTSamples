@@ -10,7 +10,7 @@ public partial class MainPage
     public MainPage(RtmpCameraViewModel viewModel)
     {
         InitializeComponent();
-        BindingContext = this._viewModel = viewModel;
+        BindingContext = _viewModel = viewModel;
         Loaded += OnPageLoaded;
     }
 
