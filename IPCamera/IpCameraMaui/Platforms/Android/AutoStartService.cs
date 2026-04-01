@@ -1,12 +1,4 @@
-﻿using IpCameraMaui;
-
-namespace IpCameraMaui;
-
-using Android.App;
-using Android.Content;
-using Android.Widget;
-using CommunityToolkit.Maui.Alerts;
-using Toast = Android.Widget.Toast;
+﻿namespace IpCameraMaui;
 
 public class AutoStartService : IAutoStartService
 {

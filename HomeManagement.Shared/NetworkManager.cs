@@ -1,35 +1,7 @@
-using System.Diagnostics;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
 namespace HomeManagement.Shared;
-
-public class DeviceManager
-{
-    public static int GetUptime()
-    {
-        try
-        {
-            var psi = new ProcessStartInfo
-            {
-                FileName = "awk",
-                Arguments = "{print int($1)} /proc/uptime",
-                RedirectStandardOutput = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
-            };
-
-            using var process = Process.Start(psi);
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return int.Parse(output.Trim());
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-}
 
 public class NetworkManager
 {

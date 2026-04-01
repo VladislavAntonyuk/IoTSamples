@@ -1,7 +1,5 @@
 ﻿namespace IpCameraMaui;
 
-using Windows.ApplicationModel;
-
 public class AutoStartService : IAutoStartService
 {
 	public Task<bool> IsAutoStartEnabledAsync()

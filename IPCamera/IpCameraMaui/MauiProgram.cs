@@ -1,5 +1,4 @@
 ﻿using CommunityToolkit.Maui;
-using IpCameraMaui;
 using RtmpCameraViewModel = IpCameraMaui.ViewModels.RtmpCameraViewModel;
 using SettingsViewModel = IpCameraMaui.ViewModels.SettingsViewModel;
 

@@ -1,6 +1,4 @@
-﻿using IpCameraMaui;
-
-namespace IpCameraMaui;
+﻿namespace IpCameraMaui;
 
 using Android.App;
 using Android.Runtime;

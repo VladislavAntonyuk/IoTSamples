@@ -12,6 +12,10 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\HomeManagement.Shared\HomeManagement.Shared.csproj" />
+		<Content Update="appsettings.*.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>Never</CopyToPublishDirectory>
+		</Content>
 	</ItemGroup>
 
 </Project>
