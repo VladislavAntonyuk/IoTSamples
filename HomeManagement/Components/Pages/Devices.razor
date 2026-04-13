@@ -42,18 +42,20 @@
 			@FormatDuration(GetStatus(context.Name)?.UptimeSeconds)
 		</MudTd>
 		<MudTd DataLabel="Actions">
-			@foreach (var action in context.Actions)
-			{
-				var st = GetStatus(context.Name);
-				var disabled = st is null || st.Loading || !st.Online || _runningActions.Contains((context.Name, action));
-				<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="@disabled" OnClick="@(() => RunAction(context, action))" Class="me-2 mb-1">
-					@if (_runningActions.Contains((context.Name, action)))
-					{
-						<MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-1" />
-					}
-					@action.Action
-				</MudButton>
-			}
+			<div class="device-actions-container">
+				@foreach (var action in context.Actions)
+				{
+					var st = GetStatus(context.Name);
+					var disabled = st is null || st.Loading || !st.Online || _runningActions.Contains((context.Name, action));
+					<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="@disabled" OnClick="@(() => RunAction(context, action))" Class="device-action-button">
+						@if (_runningActions.Contains((context.Name, action)))
+						{
+							<MudProgressCircular Indeterminate="true" Size="Size.Small" Class="me-1" />
+						}
+						@action.Action
+					</MudButton>
+				}
+			</div>
 		</MudTd>
 		<MudTd>
 			<MudIconButton Icon="@Icons.Material.Filled.Edit" OnClick="() => Edit(context)" />

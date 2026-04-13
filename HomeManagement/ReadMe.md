@@ -27,8 +27,8 @@ sudo systemctl status home-management.service
 
 
 
-ssh vladislav@raspberrypi-zero-2w.local
+ssh vladislav@raspberrypi-5.local
 rm -r Projects/HomeManagement
 
 
-scp -r "./" vladislav@raspberrypi-zero-2w.local:/home/vladislav/Projects/HomeManagement
+scp -r "./" vladislav@raspberrypi-5.local:/home/vladislav/Projects/HomeManagement

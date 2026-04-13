@@ -53,7 +53,9 @@ builder.Services.AddLiveStreamingServer(
     .AddStandaloneServices()
     .AddFlv()
     .AddStreamProcessor()
-    .AddHlsTransmuxer()
+    .AddHlsTransmuxer(hlsTransmuxerConfigurator => hlsTransmuxerConfigurator.Configure(config =>
+        config.Condition = new HlsTransmuxingCondition()
+    ))
     .AddFFmpeg(configure =>
         configure.ConfigureDefault(configuration =>
         {
