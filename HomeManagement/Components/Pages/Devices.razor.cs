@@ -12,7 +12,8 @@ namespace HomeManagement.Components.Pages;
 public partial class Devices(
     ISnackbar snackbar,
     IDbContextFactory<HomeManagementDbContext> dbContextFactory,
-    IDialogService dialogService) : ComponentBase
+    IDialogService dialogService,
+    IHttpClientFactory httpClientFactory) : ComponentBase
 {
     private MudTable<Device> _table = null!;
     private readonly Dictionary<string, DeviceStatus> _statuses = new();
@@ -47,9 +48,10 @@ public partial class Devices(
             tasks.Add(UpdateDeviceStatusAsync(device, st, token));
         }
 
-        StateHasChanged();
-        await Task.WhenAll(tasks);
-        StateHasChanged();
+        await foreach(var _ in Task.WhenEach(tasks).WithCancellation(token))
+        {
+           StateHasChanged();
+        }           
     }
 
     private async Task UpdateDeviceStatusAsync(Device device, DeviceStatus status, CancellationToken token)
@@ -93,7 +95,7 @@ public partial class Devices(
 
         try
         {
-            using var httpClient = new HttpClient();
+            using var httpClient = httpClientFactory.CreateClient();
             httpClient.BaseAddress = new Uri($"http://{device.Ip}");
             var result = action.CommandType switch
             {
@@ -116,7 +118,7 @@ public partial class Devices(
         }
     }
 
-    public static string FormatDuration(int? seconds)
+    private static string FormatDuration(int? seconds)
     {
         if (seconds is null)
         {

@@ -18,15 +18,15 @@
 		<PackageReference Include="LiveStreamingServerNet.Standalone" Version="0.33.1" />
 		<PackageReference Include="LiveStreamingServerNet.StreamProcessor.AspNetCore" Version="0.33.1" />
 		<PackageReference Include="Mailjet.Api" Version="4.0.0" />
-		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.5" />
-		<PackageReference Include="MudBlazor" Version="9.3.0" />
-		<PackageReference Include="Scalar.AspNetCore" Version="2.13.22" />
-		<PackageReference Include="Telegram.Bot" Version="22.9.6.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9" />
+		<PackageReference Include="MudBlazor" Version="9.5.0" />
+		<PackageReference Include="Scalar.AspNetCore" Version="2.16.3" />
+		<PackageReference Include="Telegram.Bot" Version="22.10.1" />
 	</ItemGroup>
 
 	<ItemGroup>

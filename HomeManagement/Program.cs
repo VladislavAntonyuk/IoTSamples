@@ -59,6 +59,7 @@ builder.Services.AddLiveStreamingServer(
     .AddFFmpeg(configure =>
         configure.ConfigureDefault(configuration =>
         {
+            configuration.Condition = new ConfigurationStreamProcessorCondition();
             configuration.Name = "live-camera-archive";
             configuration.FFmpegPath = ExecutableFinder.FindExecutableFromPATH("ffmpeg")!;
             configuration.FFmpegArguments =
@@ -75,6 +76,7 @@ builder.Services.AddLiveStreamingServer(
     )
 );
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddKeyedScoped<IHandler, PowerIsBackTelegramHandler>(WebHookActions.PowerOn);
 builder.Services.AddKeyedScoped<IHandler, PowerIsBackEmailHandler>(WebHookActions.PowerOn);
 builder.Services.AddSingleton(_ => Channel.CreateBounded<WebHookActions>(new BoundedChannelOptions(100)
