@@ -32,3 +32,4 @@ rm -r Projects/HomeManagementDeviceApi
 
 
 scp -r "./" vladislav@raspberrypi-zero-2w.local:/home/vladislav/Projects/HomeManagementDeviceApi
+scp -r "./" orangepi@192.168.50.117:/home/orangepi/Projects/HomeManagementDeviceApi
