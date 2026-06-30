@@ -1,5 +1,7 @@
 using LiveStreamingServerNet.StreamProcessor.Contracts;
 
+namespace HomeManagement;
+
 public class ConfigurationStreamProcessorCondition : IStreamProcessorCondition
 {
     /// <inheritdoc />

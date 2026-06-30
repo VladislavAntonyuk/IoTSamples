@@ -15,9 +15,11 @@ using Scalar.AspNetCore;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
+using HomeManagement;
 using HomeManagement.Application.WebHooks;
 using LiveStreamingServerNet.StreamProcessor.Utilities;
 using HomeManagement.Application.IpCameras;
+using HomeManagement.Application.Router;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +85,16 @@ builder.Services.AddSingleton(_ => Channel.CreateBounded<WebHookActions>(new Bou
 {
     FullMode = BoundedChannelFullMode.Wait
 }));
+builder.Services.AddScoped<IRouterController, AsusRouterController>((sp) =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient("AsusRouter");
+    httpClient.BaseAddress = new Uri(configuration.GetValue<string>("Router:IpAddress"));
+    var username = configuration.GetValue<string>("Router:Username");
+    var password = configuration.GetValue<string>("Router:Password");
+    return new AsusRouterController(httpClient, username, password);
+});
 
 builder.Services.AddHostedService<WebHookMessageProcessor>();
 

@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using HomeManagement.Application.Router;
 using HomeManagement.Infrastructure;
 using HomeManagement.Shared;
 using Microsoft.AspNetCore.Components;
@@ -10,11 +11,13 @@ namespace HomeManagement.Components.Pages;
 
 public partial class Home(
      ISnackbar snackbar,
+     IRouterController routerController,
      IDbContextFactory<HomeManagementDbContext> dbContextFactory) : ComponentBase
 {
     private int _totalDevices;
     private string? _localIp;
     private string? _uptime;
+    private string? _temperature;
     private string? _diskSpace;
     private string? _networkData;
     private string? _cpuInfo;
@@ -23,6 +26,7 @@ public partial class Home(
     {
         _localIp = NetworkManager.GetLocalIp();
         _uptime = GetUptime();
+        _temperature = GetTemperature();
         _diskSpace = GetDiskSpace();
         _networkData = GetNetworkData();
         _cpuInfo = GetCpuInfo();
@@ -45,6 +49,36 @@ public partial class Home(
                     CreateNoWindow = true
                 }
             };
+            process.Start();
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            return output.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    static string? GetTemperature()
+    {
+        try
+        {
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                }
+            };
+
+            process.StartInfo.ArgumentList.Add("-c");
+            process.StartInfo.ArgumentList.Add(
+                "paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp | awk '{print $1/1000 \"°C\"}')");
+
             process.Start();
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
@@ -205,6 +239,45 @@ public partial class Home(
         if (e.Key == "Enter")
         {
             await RunTerminalCommand();
+        }
+    }
+
+    private async Task RebootRouter()
+    {
+        var result = await routerController.Reboot();
+        if (string.IsNullOrEmpty(result.ErrorStatus))
+        {
+            snackbar.Add("Router rebooted successfully.", Severity.Success);
+        }
+        else
+        {
+            snackbar.Add($"Error rebooting router: {result.ErrorStatus}", Severity.Error);
+        }
+    }
+
+    private async Task RebootRouterModem()
+    {
+        var result = await routerController.RebootModem();
+        if (string.IsNullOrEmpty(result.ErrorStatus))
+        {
+            snackbar.Add("Router Modem rebooted successfully.", Severity.Success);
+        }
+        else
+        {
+            snackbar.Add($"Error rebooting router modem: {result.ErrorStatus}", Severity.Error);
+        }
+    }
+
+    private async Task TurnOffRouterLeds()
+    {
+        var result = await routerController.SetLeds(false);
+        if (string.IsNullOrEmpty(result.ErrorStatus))
+        {
+            snackbar.Add("Router LEDs turned off successfully.", Severity.Success);
+        }
+        else
+        {
+            snackbar.Add($"Error turning off router LEDs: {result.ErrorStatus}", Severity.Error);
         }
     }
 }

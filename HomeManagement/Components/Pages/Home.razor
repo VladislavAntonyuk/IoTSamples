@@ -32,6 +32,14 @@
 		<MudItem xs="12" sm="6" md="3">
 			<MudCard Class="pa-4" Style="height:100%">
 				<MudStack Spacing="1">
+					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Temperature</MudText>
+					<MudText Typo="Typo.h6">@_temperature</MudText>
+				</MudStack>
+			</MudCard>
+		</MudItem>
+		<MudItem xs="12" sm="6" md="3">
+			<MudCard Class="pa-4" Style="height:100%">
+				<MudStack Spacing="1">
 					<MudText Typo="Typo.subtitle2" Color="Color.Secondary">Disk Space</MudText>
 					<MudText Typo="Typo.body2">@_diskSpace</MudText>
 				</MudStack>
@@ -63,6 +71,9 @@
 					<MudButton OnClick="Reboot" Color="Color.Error" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.RestartAlt">Reboot</MudButton>
 					<MudButton OnClick="Shutdown" Color="Color.Error" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PowerSettingsNew">Shutdown</MudButton>
 					<MudButton Href="/devices" Color="Color.Primary" Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Devices">Manage Devices</MudButton>
+					<MudButton OnClick="RebootRouter" Color="Color.Primary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Router">Reboot Router</MudButton>
+					<MudButton OnClick="RebootRouterModem" Color="Color.Primary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.MobiledataOff">Reboot Modem</MudButton>
+					<MudButton OnClick="TurnOffRouterLeds" Color="Color.Primary" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Lightbulb">Turn off LEDs</MudButton>
 				</MudStack>
 			</MudPaper>
 		</MudItem>
