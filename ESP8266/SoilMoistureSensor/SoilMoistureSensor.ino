@@ -32,12 +32,6 @@ const Action actions[] = {
 };
 #pragma endregion
 
-void handleGetInfo();
-void handleGetStatus();
-void handleRestart();
-void handleShutdown();
-void connectToWifi();
-
 void setup() {
   Serial.begin(9600);
   bootMillis = millis();

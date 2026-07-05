@@ -1,9 +1,9 @@
 using Coravel;
-using Coravel.Invocable;
 using Coravel.Queuing.Interfaces;
 using HomeManagement.Shared;
 using Innovative.SolarCalculator;
 using System.Diagnostics;
+using HomeManagementDeviceApi;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddQueue();
@@ -11,6 +11,7 @@ builder.Services.AddScheduler();
 
 builder.Services.AddTransient<StartServiceInvocable>();
 builder.Services.AddTransient<StopServiceInvocable>();
+builder.Services.Configure<CommandsSettings>(builder.Configuration.GetSection("CommandsSettings"));
 
 var app = builder.Build();
 
@@ -23,21 +24,18 @@ var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
 
 app.Services.UseScheduler(scheduler =>
 {
-    // Runs once a day at midnight to plan the layout for the entire day
-    scheduler.Schedule(async () =>
+    scheduler.Schedule(() =>
         {
             var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tzInfo);
 
             var solarTimes = new SolarTimes(localNow.Date, latitude, longitude);
-            DateTime localSunrise = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunrise.ToUniversalTime(), tzInfo);
-            DateTime localSunset = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunset.ToUniversalTime(), tzInfo);
+            var localSunrise = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunrise.ToUniversalTime(), tzInfo);
+            var localSunset = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunset.ToUniversalTime(), tzInfo);
 
             var queue = app.Services.GetRequiredService<IQueue>();
-
-            // Schedule Sunrise Job if it hasn't passed yet today
             if (localSunrise > localNow)
             {
-                TimeSpan delayUntilSunrise = localSunrise - localNow;
+                var delayUntilSunrise = localSunrise - localNow;
                 queue.QueueAsyncTask(async () =>
                 {
                     await Task.Delay(delayUntilSunrise);
@@ -46,10 +44,9 @@ app.Services.UseScheduler(scheduler =>
                 });
             }
 
-            // Schedule Sunset Job if it hasn't passed yet today
             if (localSunset > localNow)
             {
-                TimeSpan delayUntilSunset = localSunset - localNow;
+                var delayUntilSunset = localSunset - localNow;
                 queue.QueueAsyncTask(async () =>
                 {
                     await Task.Delay(delayUntilSunset);
@@ -67,13 +64,13 @@ app.Services.UseScheduler(scheduler =>
 app.MapGet("/info", (IConfiguration configuration) => new NetworkDevice
 {
     Name = configuration["DeviceName"],
-    Ip = NetworkManager.GetLocalIp(),
+    Address = NetworkManager.GetLocalIp(),
     Actions = [
         new DeviceAction("SHUTDOWN", CommandType.Post, "shutdown"),
         new DeviceAction("RESTART", CommandType.Post, "restart"),
-        new DeviceAction("COMMAND", CommandType.Post, "command", "{\"fileName\":\"echo\",\"arguments\":[\"Hello HomeManagement\"]}"),
     ],
-    UptimeSeconds = DeviceManager.GetUptime()
+    UptimeSeconds = DeviceManager.GetUptime(),
+    Temperature = DeviceManager.GetTemperature()
 });
 app.MapPost("/shutdown", () =>
 {
@@ -85,29 +82,4 @@ app.MapPost("/restart", () =>
     Process.Start("reboot");
 });
 
-app.MapPost("/command", (Command command) =>
-{
-    Process.Start(command.FileName, command.Arguments);
-});
-
 app.Run();
-
-record Command(string FileName, IEnumerable<string> Arguments);
-
-public class StartServiceInvocable : IInvocable
-{
-    public Task Invoke()
-    {
-        Process.Start("sudo", "systemctl start live-camera");
-        return Task.CompletedTask;
-    }
-}
-
-public class StopServiceInvocable : IInvocable
-{
-    public Task Invoke()
-    {
-        Process.Start("sudo", "systemctl stop live-camera");
-        return Task.CompletedTask;
-    }
-}

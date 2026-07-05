@@ -206,15 +206,12 @@ public partial class Home(
 
         try
         {
-            var parts = _terminalCommand.Split(' ', 2);
-            var fileName = parts[0];
-            var arguments = parts.Length > 1 ? parts[1] : string.Empty;
             var process = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = fileName,
-                    Arguments = arguments,
+                    FileName = "/bin/bash",
+                    Arguments = $"-l -c \"{_terminalCommand}\"",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,

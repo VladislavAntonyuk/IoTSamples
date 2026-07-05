@@ -1,3 +1,4 @@
+@using HomeManagement.Shared
 @inherits ComponentBase
 
 <MudPaper Class="pa-4" Elevation="1" Style="min-width:500px;max-width:800px;">
@@ -8,13 +9,22 @@
 				<MudTh></MudTh>
 				<MudTh>IP</MudTh>
 				<MudTh>Name</MudTh>
-				<MudTh>Uptime</MudTh>
+				<MudTh>Info</MudTh>
 			</HeaderContent>
 			<RowTemplate>
 				<MudTd><MudCheckBox T="bool" @bind-Value="context.Selected" /></MudTd>
-				<MudTd>@context.Device.Ip</MudTd>
+				<MudTd>@context.Device.Address</MudTd>
 				<MudTd>@context.Device.Name</MudTd>
-				<MudTd>@FormatDuration(context.Device.UptimeSeconds)</MudTd>
+				<MudTd>
+					@if (context.Device is NetworkDevice networkDevice)
+					{
+						var info = $"""
+						            Uptime: {FormatDuration(networkDevice.UptimeSeconds)}
+						            Temperature: {networkDevice.Temperature} °C
+						            """;
+						<MudText>@info</MudText>
+					}
+				</MudTd>
 			</RowTemplate>
 			<NoRecordsContent>
 				<MudText>No devices found</MudText>

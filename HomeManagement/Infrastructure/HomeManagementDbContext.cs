@@ -15,7 +15,7 @@ public class HomeManagementDbContext(DbContextOptions<HomeManagementDbContext> o
         device.ToTable("Devices");
         device.HasKey(d => d.Name);
         device.Property(d => d.Name).HasMaxLength(100).IsRequired();
-        device.Property(d => d.Ip).HasMaxLength(100).IsRequired();
+        device.Property(d => d.Address).HasMaxLength(100).IsRequired();
 
         device.OwnsMany(d => d.Actions, a =>
         {

@@ -18,4 +18,19 @@ public static class DeviceManager
             return 0;
         }
     }
+
+    public static double GetTemperature()
+    {
+        try
+        {
+            var tempText = File.ReadAllText("/sys/class/thermal/thermal_zone0/temp");
+            var tempCelsius = double.Parse(tempText, CultureInfo.InvariantCulture) / 1000.0;
+
+            return tempCelsius;
+        }
+        catch
+        {
+            return 0;
+        }
+    }
 }

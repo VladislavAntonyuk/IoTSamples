@@ -1,7 +1,7 @@
-using System.Threading.Channels;
 using HomeManagement.Application.Login;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Threading.Channels;
 
 namespace HomeManagement.Application.WebHooks;
 
@@ -13,13 +13,13 @@ public static class WebHookModule
             IOptions<StaticAuthOptions> authOptions,
             [FromHeader] string key,
             [FromBody] WebHookModel model,
-            Channel<WebHookActions> channel,
+            Channel<WebHookModel> channel,
             CancellationToken token) =>
         {
             var cfg = authOptions.Value;
             if (key == cfg.Key)
             {
-                await channel.Writer.WriteAsync(model.Action, token);
+                await channel.Writer.WriteAsync(model, token);
                 return Results.Ok();
             }
 

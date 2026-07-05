@@ -1,10 +1,11 @@
-﻿using System.Net.NetworkInformation;
-using HomeManagement.Components.Dialogs;
+﻿using HomeManagement.Components.Dialogs;
 using HomeManagement.Infrastructure;
 using HomeManagement.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
+using System.Diagnostics;
+using System.Net.NetworkInformation;
 using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
@@ -48,34 +49,43 @@ public partial class Devices(
             tasks.Add(UpdateDeviceStatusAsync(device, st, token));
         }
 
-        await foreach(var _ in Task.WhenEach(tasks).WithCancellation(token))
+        await foreach (var _ in Task.WhenEach(tasks).WithCancellation(token))
         {
-           StateHasChanged();
-        }           
+            StateHasChanged();
+        }
     }
 
     private async Task UpdateDeviceStatusAsync(Device device, DeviceStatus status, CancellationToken token)
     {
         try
         {
-            var info = await NetworkManager.GetDeviceInfoAsync(device.Ip, token);
+            var info = await NetworkManager.GetDeviceInfoAsync(device.Address, token);
             if (info is not null)
             {
                 status.Online = true;
                 status.UptimeSeconds = info.UptimeSeconds;
+                status.Temperature = info.Temperature;
             }
             else
             {
-                using var ping = new Ping();
-                var reply = await ping.SendPingAsync(device.Ip, 250);
-                status.Online = reply.Status == IPStatus.Success;
-                status.UptimeSeconds = null;
+                if (PhysicalAddress.TryParse(device.Address, out _))
+                {
+                    status.Online = true;
+                }
+                else
+                {
+                    using var ping = new Ping();
+                    var reply = await ping.SendPingAsync(device.Address, 250);
+                    status.Online = reply.Status == IPStatus.Success;
+                    status.UptimeSeconds = 0;
+                    status.Temperature = 0;
+                }
             }
         }
         catch
         {
             status.Online = false;
-            status.UptimeSeconds = null;
+            status.UptimeSeconds = 0;
         }
         finally
         {
@@ -95,18 +105,39 @@ public partial class Devices(
 
         try
         {
-            using var httpClient = httpClientFactory.CreateClient();
-            httpClient.BaseAddress = new Uri($"http://{device.Ip}");
-            var result = action.CommandType switch
+            if (PhysicalAddress.TryParse(device.Address, out _))
             {
-                CommandType.Get => await httpClient.GetAsync($"{action.Command}?{action.CommandArgs}"),
-                CommandType.Post => await httpClient.PostAsync(action.Command,
-                    string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs)),
-                _ => throw new ArgumentOutOfRangeException()
-            };
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "/home/vladislav/.local/bin/bluetti-read",
+                        Arguments = $"-m {device.Address} -t {device.Name} -e true",
+                        RedirectStandardOutput = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                var output = await process.StandardOutput.ReadToEndAsync();
+                await process.WaitForExitAsync();
+                snackbar.Add(output.Trim(), Severity.Success);
+            }
+            else
+            {
+                using var httpClient = httpClientFactory.CreateClient();
+                httpClient.BaseAddress = new Uri($"http://{device.Address}");
+                var result = action.CommandType switch
+                {
+                    CommandType.Get => await httpClient.GetAsync($"{action.Command}?{action.CommandArgs}"),
+                    CommandType.Post => await httpClient.PostAsync(action.Command,
+                        string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs)),
+                    _ => throw new ArgumentOutOfRangeException()
+                };
 
-            snackbar.Add(await result.Content.ReadAsStringAsync(),
-                result.IsSuccessStatusCode ? Severity.Success : Severity.Error);
+                snackbar.Add(await result.Content.ReadAsStringAsync(),
+                    result.IsSuccessStatusCode ? Severity.Success : Severity.Error);
+            }
         }
         catch (Exception ex)
         {
@@ -181,14 +212,14 @@ public partial class Devices(
 
     private async Task Add()
     {
-        var dialog = await dialogService.ShowAsync<IpAddressDialog>("Enter Address");
+        var dialog = await dialogService.ShowAsync<AddressDialog>("Enter Address");
         var result = await dialog.Result;
         if (result is null || result.Canceled)
         {
             return;
         }
 
-        var device = (NetworkDevice)result.Data!;
+        var device = (Device)result.Data!;
         try
         {
             await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -211,7 +242,7 @@ public partial class Devices(
             ["Model"] = new DeviceEditModel
             {
                 Name = device.Name,
-                Ip = device.Ip,
+                Ip = device.Address,
                 Actions = device.Actions.Select(a => new DeviceActionEditModel
                 {
                     Action = a.Action,
@@ -243,7 +274,7 @@ public partial class Devices(
             var replacement = new Device()
             {
                 Name = model.Name,
-                Ip = model.Ip,
+                Address = model.Ip,
                 Actions = model.Actions.Select(a => new DeviceAction(a.Action, a.CommandType, a.Command, a.CommandArgs))
                     .ToList()
             };
@@ -285,7 +316,8 @@ public partial class Devices(
     private class DeviceStatus
     {
         public bool Online { get; set; }
-        public int? UptimeSeconds { get; set; }
+        public int UptimeSeconds { get; set; }
+        public double Temperature { get; set; }
         public bool Loading { get; set; } = true;
     }
 }

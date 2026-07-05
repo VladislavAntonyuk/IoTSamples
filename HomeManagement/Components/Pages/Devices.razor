@@ -15,38 +15,49 @@
 		<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="me-2 mb-1" OnClick="Add">Add</MudButton>
 	</ToolBarContent>
 	<HeaderContent>
-		<MudTh><MudTableSortLabel T="Device">IP</MudTableSortLabel></MudTh>
+		<MudTh><MudTableSortLabel T="Device">Address</MudTableSortLabel></MudTh>
 		<MudTh><MudTableSortLabel T="Device">Name</MudTableSortLabel></MudTh>
 		<MudTh>Status</MudTh>
-		<MudTh>Uptime</MudTh>
+		<MudTh>Info</MudTh>
 		<MudTh><MudTableSortLabel T="Device">Actions</MudTableSortLabel></MudTh>
 		<MudTh></MudTh>
 	</HeaderContent>
 	<RowTemplate>
-		<MudTd DataLabel="IP">@context.Ip</MudTd>
+		@{
+			var deviceStatus = GetStatus(context.Name);
+		}
+		<MudTd DataLabel="Address">@context.Address</MudTd>
 		<MudTd DataLabel="Name">@context.Name</MudTd>
 		<MudTd DataLabel="Status">
 			@{
-				var st = GetStatus(context.Name);
-				if (st is null || st.Loading)
+				if (deviceStatus is null || deviceStatus.Loading)
 				{
 					<MudProgressCircular Indeterminate="true" Size="Size.Small" />
 				}
 				else
 				{
-					<MudChip T="string" Color="@(st.Online? Color.Success: Color.Error)" Variant="Variant.Filled">@(st.Online ? "Online" : "Offline")</MudChip>
+					<MudChip T="string" Color="@(deviceStatus.Online ? Color.Success : Color.Error)" Variant="Variant.Filled">@(deviceStatus.Online ? "Online" : "Offline")</MudChip>
 				}
 			}
 		</MudTd>
-		<MudTd DataLabel="Uptime">
-			@FormatDuration(GetStatus(context.Name)?.UptimeSeconds)
+		<MudTd DataLabel="Info">
+			@if (deviceStatus is null || deviceStatus.Loading)
+			{
+				<MudProgressCircular Indeterminate="true" Size="Size.Small" />
+			}
+			else
+			{
+				<MudStack>
+					<MudText>Uptime: @FormatDuration(deviceStatus.UptimeSeconds)</MudText>
+					<MudText>Temperature: @deviceStatus.Temperature °C</MudText>
+				</MudStack>
+			}
 		</MudTd>
 		<MudTd DataLabel="Actions">
 			<div class="device-actions-container">
 				@foreach (var action in context.Actions)
 				{
-					var st = GetStatus(context.Name);
-					var disabled = st is null || st.Loading || !st.Online || _runningActions.Contains((context.Name, action));
+					var disabled = deviceStatus is null || deviceStatus.Loading || !deviceStatus.Online || _runningActions.Contains((context.Name, action));
 					<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="@disabled" OnClick="@(() => RunAction(context, action))" Class="device-action-button">
 						@if (_runningActions.Contains((context.Name, action)))
 						{

@@ -20,6 +20,8 @@ using HomeManagement.Application.WebHooks;
 using LiveStreamingServerNet.StreamProcessor.Utilities;
 using HomeManagement.Application.IpCameras;
 using HomeManagement.Application.Router;
+using HomeManagement.Application.WebHooks.Email;
+using HomeManagement.Application.WebHooks.Telegram;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,8 +31,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.Configure<StaticAuthOptions>(builder.Configuration.GetSection("Auth"));
-builder.Services.Configure<PowerIsBackTelegramSettings>(builder.Configuration.GetSection("PowerIsBackTelegramSettings"));
-builder.Services.Configure<PowerIsBackEmailSettings>(builder.Configuration.GetSection("PowerIsBackEmailSettings"));
+builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("TelegramSettings"));
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
 // Cookie authentication only (no Identity)
 builder.Services
@@ -79,9 +81,10 @@ builder.Services.AddLiveStreamingServer(
 );
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
-builder.Services.AddKeyedScoped<IHandler, PowerIsBackTelegramHandler>(WebHookActions.PowerOn);
-builder.Services.AddKeyedScoped<IHandler, PowerIsBackEmailHandler>(WebHookActions.PowerOn);
-builder.Services.AddSingleton(_ => Channel.CreateBounded<WebHookActions>(new BoundedChannelOptions(100)
+builder.Services.AddScoped<ISender, TelegramSender>();
+builder.Services.AddScoped<ISender, EmailSender>();
+builder.Services.AddSingleton<SenderRequestFactory>();
+builder.Services.AddSingleton(_ => Channel.CreateBounded<WebHookModel>(new BoundedChannelOptions(100)
 {
     FullMode = BoundedChannelFullMode.Wait
 }));

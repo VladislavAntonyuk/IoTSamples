@@ -1,6 +1,6 @@
-namespace HomeManagement.Application.WebHooks;
+namespace HomeManagement.Application.WebHooks.Email;
 
-public class PowerIsBackEmailSettings
+public class EmailSettings
 {
     public required string ApiKey { get; set; }
     public required string ApiSecret { get; set; }

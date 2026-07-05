@@ -1,6 +1,6 @@
-namespace HomeManagement.Application.WebHooks;
+namespace HomeManagement.Application.WebHooks.Telegram;
 
-public class PowerIsBackTelegramSettings
+public class TelegramSettings
 {
     public required string Token { get; init; }
     public required long ChatId { get; init; }
