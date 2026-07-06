@@ -10,7 +10,7 @@ public class StopServiceInvocable(IOptions<CommandsSettings> commandsOptions) : 
     {
         foreach (var command in commandsOptions.Value.Commands)
         {
-            Process.Start(command.StopCommand.FileName, command.StopCommand.Arguments);
+            Process.Start(command.StopCommand.FileName, string.Join(' ', command.StopCommand.Arguments));
         }
 
         return Task.CompletedTask;

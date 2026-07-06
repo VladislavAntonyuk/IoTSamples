@@ -1,9 +1,11 @@
 using Coravel;
 using Coravel.Queuing.Interfaces;
 using HomeManagement.Shared;
-using Innovative.SolarCalculator;
-using System.Diagnostics;
 using HomeManagementDeviceApi;
+using Innovative.SolarCalculator;
+using Microsoft.Extensions.Options;
+using System.Diagnostics;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddQueue();
@@ -61,17 +63,42 @@ app.Services.UseScheduler(scheduler =>
         .RunOnceAtStart();
 });
 
-app.MapGet("/info", (IConfiguration configuration) => new NetworkDevice
+app.MapGet("/info", (IConfiguration configuration, IOptions<CommandsSettings> commandsOptions) =>
 {
-    Name = configuration["DeviceName"],
-    Address = NetworkManager.GetLocalIp(),
-    Actions = [
-        new DeviceAction("SHUTDOWN", CommandType.Post, "shutdown"),
-        new DeviceAction("RESTART", CommandType.Post, "restart"),
-    ],
-    UptimeSeconds = DeviceManager.GetUptime(),
-    Temperature = DeviceManager.GetTemperature()
+    var actions = new List<DeviceAction>()
+    {
+        new ("SHUTDOWN", CommandType.Post, "shutdown"),
+        new ("RESTART", CommandType.Post, "restart")
+    };
+    actions.AddRange(commandsOptions.Value.Commands.Select(x => new DeviceAction($"Start {x.Name}", CommandType.Post, "command", JsonSerializer.Serialize(x.StartCommand))));
+    actions.AddRange(commandsOptions.Value.Commands.Select(x => new DeviceAction($"Stop {x.Name}", CommandType.Post, "command", JsonSerializer.Serialize(x.StopCommand))));
+
+    return new NetworkDevice
+    {
+        Name = configuration["DeviceName"],
+        Address = NetworkManager.GetLocalIp(),
+        Actions = actions,
+        UptimeSeconds = DeviceManager.GetUptime(),
+        Temperature = DeviceManager.GetTemperature()
+    };
 });
+app.MapPost("/command", async (Command command) =>
+{
+    var process = new Process
+    {
+        StartInfo = new ProcessStartInfo
+        {
+            FileName = command.FileName,
+            Arguments = string.Join(' ', command.Arguments),
+            RedirectStandardOutput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        }
+    };
+    process.Start();
+    return await process.StandardOutput.ReadToEndAsync();
+});
+
 app.MapPost("/shutdown", () =>
 {
     Process.Start("poweroff");

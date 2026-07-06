@@ -10,7 +10,7 @@ public class StartServiceInvocable(IOptions<CommandsSettings> commandsOptions) :
     {
         foreach (var command in commandsOptions.Value.Commands)
         {
-            Process.Start(command.StartCommand.FileName, command.StartCommand.Arguments);
+            Process.Start(command.StartCommand.FileName, string.Join(' ', command.StartCommand.Arguments));
         }
 
         return Task.CompletedTask;

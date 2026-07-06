@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using System.Diagnostics;
 using System.Net.NetworkInformation;
+using System.Text;
 using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
@@ -131,11 +132,18 @@ public partial class Devices(
                 {
                     CommandType.Get => await httpClient.GetAsync($"{action.Command}?{action.CommandArgs}"),
                     CommandType.Post => await httpClient.PostAsync(action.Command,
-                        string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs)),
+                        string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs, Encoding.Default, "application/json")),
                     _ => throw new ArgumentOutOfRangeException()
                 };
 
-                snackbar.Add(await result.Content.ReadAsStringAsync(),
+                var content = await result.Content.ReadAsStringAsync();
+                if (string.IsNullOrEmpty(content))
+                {
+                    content = result.IsSuccessStatusCode
+                        ? $"{action.Action} successfully executed"
+                        : "Error has occured";
+                }
+                snackbar.Add(content,
                     result.IsSuccessStatusCode ? Severity.Success : Severity.Error);
             }
         }
