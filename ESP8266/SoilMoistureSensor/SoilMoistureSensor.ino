@@ -17,6 +17,7 @@ const char* password = "!";
 
 #pragma region Globals
 ESP8266WebServer server(80);
+unsigned long lastLoopTick = 0;
 unsigned long bootMillis = 0;
 struct Action {
   const char* action;
@@ -66,10 +67,57 @@ void setup() {
 void loop() {
   MDNS.update();
   server.handleClient();
-  delay(1);  // Explicit yield to prevent background soft-WDT issues
+
+  unsigned long now = millis();
+  
+  if (now - lastLoopTick >= 5 * 60 * 1000) { // Every 5 minutes
+    lastLoopTick = now;
+    String result = handleGetStatus();
+    if (result != "") {
+      sendWebhookMessage(result);
+    }
+  }
 }
 
-void handleGetStatus() {
+bool sendWebhookMessage(const char* action) {
+  String payload = "{\"message\": \"";
+  payload += action;
+  payload += "\"}";
+
+  String request = "POST ";
+  request += webhookPath;
+  request += " HTTP/1.1\r\n";
+  request += "Host: ";
+  request += webhookHost;
+  request += "\r\n";
+  request += "Content-Type: application/json\r\n";
+  request += "Content-Length: ";
+  request += payload.length();
+  request += "\r\n";
+  request += "key: ";
+  request += webhookKey;
+  request += "\r\n";
+  request += "\r\n";
+  request += payload;
+  
+  if (!client.connect(webhookHost, 80)) {
+    setStatus("Failed to connect to webhook host");
+    return false;
+  }
+
+  setStatus("Connected! Sending request...");
+  size_t expected = request.length();
+  size_t sent = client.print(request);
+  client.flush();
+
+  setStatus("Bytes sent: " + String(sent) + " / " + String(expected));
+
+  bool success = (sent == expected);
+  client.stop();
+  return success;
+}
+
+String handleGetStatus() {
   long totalRaw = 0;
   const int samples = 10;
 
@@ -93,11 +141,14 @@ void handleGetStatus() {
   doc["voltage"] = voltage;
   doc["moisture"] = moisturePercent;
 
+  String result = '';
   // Automation logic handling thresholds
   if (moisturePercent < WATER_TRIGGER_PCT) {
     doc["status"] = "ALERT: Soil is DRY! Needs watering.";
+    result = "ALERT: Soil is DRY! Needs watering." + String(moisturePercent) + "%";
   } else if (moisturePercent > 75) {
     doc["status"] = "STATUS: Soil is highly saturated / wet.";
+    result = "STATUS: Soil is highly saturated / wet." + String(moisturePercent) + "%";
   } else {
     doc["status"] = "STATUS: Soil moisture level is optimal.";
   }
@@ -105,6 +156,7 @@ void handleGetStatus() {
   String out;
   serializeJson(doc, out);
   server.send(200, "application/json", out);
+  return result;
 }
 
 void handleGetInfo() {

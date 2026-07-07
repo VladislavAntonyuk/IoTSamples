@@ -58,6 +58,44 @@ void loop() {
   delay(1); // Explicit yield to prevent background soft-WDT issues
 }
 
+bool sendWebhookMessage(const char* action) {
+  String payload = "{\"message\": \"";
+  payload += action;
+  payload += "\"}";
+
+  String request = "POST ";
+  request += webhookPath;
+  request += " HTTP/1.1\r\n";
+  request += "Host: ";
+  request += webhookHost;
+  request += "\r\n";
+  request += "Content-Type: application/json\r\n";
+  request += "Content-Length: ";
+  request += payload.length();
+  request += "\r\n";
+  request += "key: ";
+  request += webhookKey;
+  request += "\r\n";
+  request += "\r\n";
+  request += payload;
+  
+  if (!client.connect(webhookHost, 80)) {
+    setStatus("Failed to connect to webhook host");
+    return false;
+  }
+
+  setStatus("Connected! Sending request...");
+  size_t expected = request.length();
+  size_t sent = client.print(request);
+  client.flush();
+
+  setStatus("Bytes sent: " + String(sent) + " / " + String(expected));
+
+  bool success = (sent == expected);
+  client.stop();
+  return success;
+}
+
 float getFilteredDistance() {
   const int SAMPLES = 5;
   float distances[SAMPLES];
@@ -111,6 +149,7 @@ void handleGetDistance() {
   } else {
     JsonDocument doc;
     doc["distanceToWaterCm"] = distanceCm;
+    sendWebhookMessage("Distance to water: " + String(distanceCm, 2) + " cm");
     
     String out;
     serializeJson(doc, out);

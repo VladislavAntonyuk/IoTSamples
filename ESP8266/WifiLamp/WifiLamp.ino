@@ -4,7 +4,7 @@
 #include <ArduinoJson.h>
 
 #pragma region Variables
-const char* name = "YOUR DEVICE NAME";
+const char* name = "second-floor-door-lamp";
 const char* ssid = "YOUR SSID";
 const char* password = "YOUR_PASSWORD";
 
@@ -153,7 +153,6 @@ void handleShutdown() {
   delay(300);
   resetPins();
   WiFi.disconnect(true);
-  WiFi.mode(WIFI_OFF);
   ESP.deepSleep(0);
 }
 
@@ -186,7 +185,7 @@ void resetPins() {
 
 void connectToWifi() {
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  while (!WiFi.isConnected()) {
     delay(1000);
     Serial.println("Connecting to WiFi...");
   }

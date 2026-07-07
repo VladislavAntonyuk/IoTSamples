@@ -2,7 +2,7 @@
 #include <ESP8266mDNS.h>
 #include <ESP8266WebServer.h>
 
-const char* name = "YOUR DEVICE NAME";
+const char* name = "second-floor-power-notifier";
 const char* ssid = "YOUR SSID";
 const char* password = "YOUR_PASSWORD";
 const char* webhookHost = "192.168.1.1";

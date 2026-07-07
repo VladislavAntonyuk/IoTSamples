@@ -79,7 +79,48 @@ void loop() {
   if (now - lastLoopTick >= 1000) {
     lastLoopTick = now;
     processSensorLogic(now);
+    if (currentReadings.severity != "SAFE") {
+      sendWebhookMessage("ALERT: CO level is " + String(currentReadings.coPercent, 2) + "% - Status: " + String(currentReadings.severity));
+    }
   }
+}
+
+bool sendWebhookMessage(const char* action) {
+  String payload = "{\"message\": \"";
+  payload += action;
+  payload += "\"}";
+
+  String request = "POST ";
+  request += webhookPath;
+  request += " HTTP/1.1\r\n";
+  request += "Host: ";
+  request += webhookHost;
+  request += "\r\n";
+  request += "Content-Type: application/json\r\n";
+  request += "Content-Length: ";
+  request += payload.length();
+  request += "\r\n";
+  request += "key: ";
+  request += webhookKey;
+  request += "\r\n";
+  request += "\r\n";
+  request += payload;
+  
+  if (!client.connect(webhookHost, 80)) {
+    setStatus("Failed to connect to webhook host");
+    return false;
+  }
+
+  setStatus("Connected! Sending request...");
+  size_t expected = request.length();
+  size_t sent = client.print(request);
+  client.flush();
+
+  setStatus("Bytes sent: " + String(sent) + " / " + String(expected));
+
+  bool success = (sent == expected);
+  client.stop();
+  return success;
 }
 
 void processSensorLogic(unsigned long now) {
@@ -104,10 +145,18 @@ void processSensorLogic(unsigned long now) {
     float rawPercent = ((float)(currentReadings.rawA - baseline) / (DANGER_VAL - baseline)) * 100.0;
     currentReadings.coPercent = constrain(rawPercent, 0.0, 500.0);
 
-    if (currentReadings.coPercent >= 300.0) currentReadings.severity = "CRITICAL";
-    else if (currentReadings.coPercent >= 100.0) currentReadings.severity = "VERY BAD";
-    else if (currentReadings.coPercent >= 15.0) currentReadings.severity = "RISK";
-    else currentReadings.severity = "SAFE";
+    if (currentReadings.coPercent >= 300.0){
+      currentReadings.severity = "CRITICAL";
+    } 
+    else if (currentReadings.coPercent >= 100.0){
+      currentReadings.severity = "VERY BAD";
+    } 
+    else if (currentReadings.coPercent >= 15.0){
+      currentReadings.severity = "RISK";
+    }
+    else {
+      currentReadings.severity = "SAFE";
+    }
 
     Serial.printf("P: %s | A: %d | D: %d | CO: %.2f%% | Status: %s\n", 
                   currentReadings.phase, 
