@@ -26,7 +26,6 @@ public class SenderRequestFactory
 
         return new SenderRequest
         {
-            Recipient = model.Recipient,
             Content = createContent(model)
         };
     }

@@ -11,6 +11,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddQueue();
 builder.Services.AddScheduler();
 
+builder.Services.AddHttpClient<MonitorInvocable>();
+builder.Services.AddTransient<MonitorInvocable>();
 builder.Services.AddTransient<StartServiceInvocable>();
 builder.Services.AddTransient<StopServiceInvocable>();
 builder.Services.Configure<CommandsSettings>(builder.Configuration.GetSection("CommandsSettings"));
@@ -26,6 +28,11 @@ var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
 
 app.Services.UseScheduler(scheduler =>
 {
+    scheduler.Schedule<MonitorInvocable>()
+        .EveryFiveMinutes()
+        .RunOnceAtStart()
+        .PreventOverlapping("Monitor");
+
     scheduler.Schedule(() =>
         {
             var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tzInfo);

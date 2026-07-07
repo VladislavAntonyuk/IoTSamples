@@ -14,18 +14,15 @@ public class EmailSender(IOptions<EmailSettings> options) : ISender
         }
 
         MailjetClient client = new MailjetClient(options.Value.ApiKey, options.Value.ApiSecret);
-        var toRecipients = string.IsNullOrWhiteSpace(request.Recipient)
-            ? options.Value.To
-            : [request.Recipient];
 
         var email = new TransactionalEmailBuilder()
             .WithFrom(new SendContact(options.Value.FromEmail))
             .WithSubject("Home Management notification")
             .WithTextPart(emailContent.Message)
-            .WithTo(toRecipients.Select(recipient => new SendContact(recipient)))
+            .WithTo(options.Value.To.Select(recipient => new SendContact(recipient)))
             .Build();
 
         var response = await client.SendTransactionalEmailAsync(email);
-        return response.Messages.Length > 0 ? new HasErrorResult() : new HasErrorResult() { Error = "Email is not sent" };
+        return response.Messages.Length > 0 ? new HasErrorResult() : new HasErrorResult { Error = "Email is not sent" };
     }
 }
