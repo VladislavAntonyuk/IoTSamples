@@ -1,8 +1,6 @@
 using Coravel;
-using Coravel.Queuing.Interfaces;
 using HomeManagement.Shared;
 using HomeManagementDeviceApi;
-using Innovative.SolarCalculator;
 using Microsoft.Extensions.Options;
 using System.Diagnostics;
 using System.Text.Json;
@@ -33,41 +31,12 @@ app.Services.UseScheduler(scheduler =>
         .RunOnceAtStart()
         .PreventOverlapping("Monitor");
 
-    scheduler.Schedule(() =>
-        {
-            var localNow = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tzInfo);
-
-            var solarTimes = new SolarTimes(localNow.Date, latitude, longitude);
-            var localSunrise = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunrise.ToUniversalTime(), tzInfo);
-            var localSunset = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunset.ToUniversalTime(), tzInfo);
-
-            var queue = app.Services.GetRequiredService<IQueue>();
-            if (localSunrise > localNow)
-            {
-                var delayUntilSunrise = localSunrise - localNow;
-                queue.QueueAsyncTask(async () =>
-                {
-                    await Task.Delay(delayUntilSunrise);
-                    var invocable = app.Services.GetRequiredService<StartServiceInvocable>();
-                    await invocable.Invoke();
-                });
-            }
-
-            if (localSunset > localNow)
-            {
-                var delayUntilSunset = localSunset - localNow;
-                queue.QueueAsyncTask(async () =>
-                {
-                    await Task.Delay(delayUntilSunset);
-                    var invocable = app.Services.GetRequiredService<StopServiceInvocable>();
-                    await invocable.Invoke();
-                });
-            }
-        })
-        .DailyAtHour(0)
-        .Zoned(tzInfo)
-        .PreventOverlapping("DailySolarPlanner")
-        .RunOnceAtStart();
+    scheduler.Schedule<StartServiceInvocable>()
+        .AtSunrise(tzInfo, latitude, longitude)
+        .PreventOverlapping("StartServiceInvocable");
+    scheduler.Schedule<StopServiceInvocable>()
+        .AtSunset(tzInfo, latitude, longitude)
+        .PreventOverlapping("StopServiceInvocable");
 });
 
 app.MapGet("/info", (IConfiguration configuration, IOptions<CommandsSettings> commandsOptions) =>
@@ -91,19 +60,8 @@ app.MapGet("/info", (IConfiguration configuration, IOptions<CommandsSettings> co
 });
 app.MapPost("/command", async (Command command) =>
 {
-    var process = new Process
-    {
-        StartInfo = new ProcessStartInfo
-        {
-            FileName = command.FileName,
-            Arguments = string.Join(' ', command.Arguments),
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        }
-    };
-    process.Start();
-    return await process.StandardOutput.ReadToEndAsync();
+    var result = await Process.RunAndCaptureTextAsync(command.FileName, command.Arguments.ToList());
+    return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
 });
 
 app.MapPost("/shutdown", () =>

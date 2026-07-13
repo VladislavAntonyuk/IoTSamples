@@ -11,7 +11,6 @@ using LiveStreamingServerNet.StreamProcessor.Installer;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
-using Scalar.AspNetCore;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
@@ -104,7 +103,6 @@ builder.Services.AddHostedService<WebHookMessageProcessor>();
 builder.Services.ConfigureHttpJsonOptions(options => {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
-builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
@@ -120,10 +118,6 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
-
-app.MapOpenApi();
-
-app.MapScalarApiReference();
 
 app.MapLogin();
 app.MapWebHook();

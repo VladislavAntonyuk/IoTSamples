@@ -1,11 +1,12 @@
-﻿using System.Diagnostics;
-using HomeManagement.Application.Router;
+﻿using HomeManagement.Application.Router;
 using HomeManagement.Infrastructure;
 using HomeManagement.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
+using System.Diagnostics;
+using Telegram.Bot.Types;
 
 namespace HomeManagement.Components.Pages;
 
@@ -25,147 +26,55 @@ public partial class Home(
     protected override async Task OnInitializedAsync()
     {
         _localIp = NetworkManager.GetLocalIp();
-        _uptime = GetUptime();
-        _temperature = GetTemperature();
-        _diskSpace = GetDiskSpace();
-        _networkData = GetNetworkData();
-        _cpuInfo = GetCpuInfo();
+        _uptime = await GetUptime();
+        _temperature = await GetTemperature();
+        _diskSpace = await GetDiskSpace();
+        _networkData = await GetNetworkData();
+        _cpuInfo = await GetCpuInfo();
         await using var db = await dbContextFactory.CreateDbContextAsync();
         _totalDevices = await db.Devices.CountAsync();
     }
 
-    static string? GetUptime()
+    private static async Task<string> GetUptime()
     {
-        try
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "uptime",
-                    Arguments = "-p",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return output.Trim();
-        }
-        catch
-        {
-            return null;
-        }
+        var result = await Process.RunAndCaptureTextAsync("uptime",["-p"]);
+        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
     }
 
-    static string? GetTemperature()
+    static async Task<string?> GetTemperature()
     {
-        try
+        var startInfo = new ProcessStartInfo
         {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "/bin/bash",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
+            FileName = "/bin/bash",
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
 
-            process.StartInfo.ArgumentList.Add("-c");
-            process.StartInfo.ArgumentList.Add(
-                "paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp | awk '{print $1/1000 \"°C\"}')");
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(
+            "paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp | awk '{print $1/1000 \"°C\"}')");
 
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return output.Trim();
-        }
-        catch
-        {
-            return null;
-        }
+        var result = await Process.RunAndCaptureTextAsync(startInfo);
+        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
     }
 
-    private string? GetDiskSpace()
+    private async Task<string> GetDiskSpace()
     {
-        try
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "df",
-                    Arguments = "-T -h",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return output.Trim();
-        }
-        catch
-        {
-            return null;
-        }
+        var result = await Process.RunAndCaptureTextAsync("df", ["-T", "-h"]);
+        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
+    }
+    private async Task<string> GetNetworkData()
+    {
+        var result = await Process.RunAndCaptureTextAsync("ip", ["-s addr show"]);
+        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
     }
 
-    private string? GetNetworkData()
+    private async Task<string?> GetCpuInfo()
     {
-        try
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "ip",
-                    Arguments = "-s addr show",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return output.Trim();
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    private string? GetCpuInfo()
-    {
-        try
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "cat",
-                    Arguments = "/proc/cpuinfo",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            var output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
-            return output.Trim();
-        }
-        catch
-        {
-            return null;
-        }
+        var result = await Process.RunAndCaptureTextAsync("cat", ["/proc/cpuinfo"]);
+        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
     }
 
     private void Reboot()
@@ -204,31 +113,8 @@ public partial class Home(
             return;
         }
 
-        try
-        {
-            var process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "/bin/bash",
-                    Arguments = $"-l -c \"{_terminalCommand}\"",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                }
-            };
-            process.Start();
-            var output = await process.StandardOutput.ReadToEndAsync();
-            var error = await process.StandardError.ReadToEndAsync();
-            await process.WaitForExitAsync();
-            _terminalOutput =
-                $"> {_terminalCommand}{Environment.NewLine}{output}{(string.IsNullOrWhiteSpace(error) ? "" : Environment.NewLine + error)}";
-        }
-        catch (Exception ex)
-        {
-            _terminalOutput = $"> {_terminalCommand}{Environment.NewLine}Error: {ex.Message}";
-        }
+        var result = await Process.RunAndCaptureTextAsync("/bin/bash", [$"-l -c \"{_terminalCommand}\""]);
+        _terminalOutput = $"> {_terminalCommand}{Environment.NewLine}{result.StandardOutput}{(string.IsNullOrWhiteSpace(result.StandardError) ? "" : Environment.NewLine + result.StandardError)}";
     }
 
     private async Task OnTerminalKeyDown(KeyboardEventArgs e)

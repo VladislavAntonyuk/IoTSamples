@@ -108,21 +108,18 @@ public partial class Devices(
         {
             if (PhysicalAddress.TryParse(device.Address, out _))
             {
-                var process = new Process
+                var output = await Process.RunAndCaptureTextAsync(new ProcessStartInfo
                 {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = "/home/vladislav/.local/bin/bluetti-read",
-                        Arguments = $"-m {device.Address} -t {device.Name} -e true",
-                        RedirectStandardOutput = true,
-                        UseShellExecute = false,
-                        CreateNoWindow = true
-                    }
-                };
-                process.Start();
-                var output = await process.StandardOutput.ReadToEndAsync();
-                await process.WaitForExitAsync();
-                snackbar.Add(output.Trim(), Severity.Success);
+                    FileName = "/home/vladislav/.local/bin/bluetti-read",
+                    Arguments = $"-m {device.Address} -t {device.Name} -e true",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                });
+                snackbar.Add(output.ExitStatus.ExitCode == 0 ? output.StandardOutput : output.StandardError,
+                    output.ExitStatus.ExitCode == 0 ? Severity.Success : Severity.Error, 
+                    options => options.RequireInteraction = true);
             }
             else
             {
@@ -144,12 +141,12 @@ public partial class Devices(
                         : "Error has occured";
                 }
                 snackbar.Add(content,
-                    result.IsSuccessStatusCode ? Severity.Success : Severity.Error);
+                    result.IsSuccessStatusCode ? Severity.Success : Severity.Error, options => options.RequireInteraction = true);
             }
         }
         catch (Exception ex)
         {
-            snackbar.Add(ex.Message, Severity.Error);
+            snackbar.Add(ex.Message, Severity.Error, options => options.RequireInteraction = true);
         }
         finally
         {
