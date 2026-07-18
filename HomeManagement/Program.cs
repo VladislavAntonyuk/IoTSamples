@@ -1,4 +1,10 @@
+using HomeManagement;
+using HomeManagement.Application.IpCameras;
 using HomeManagement.Application.Login;
+using HomeManagement.Application.Router;
+using HomeManagement.Application.WebHooks;
+using HomeManagement.Application.WebHooks.Email;
+using HomeManagement.Application.WebHooks.Telegram;
 using HomeManagement.Components;
 using HomeManagement.Infrastructure;
 using LiveStreamingServerNet;
@@ -8,19 +14,14 @@ using LiveStreamingServerNet.Standalone;
 using LiveStreamingServerNet.Standalone.Installer;
 using LiveStreamingServerNet.StreamProcessor.AspNetCore.Installer;
 using LiveStreamingServerNet.StreamProcessor.Installer;
+using LiveStreamingServerNet.StreamProcessor.Utilities;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
-using HomeManagement;
-using HomeManagement.Application.WebHooks;
-using LiveStreamingServerNet.StreamProcessor.Utilities;
-using HomeManagement.Application.IpCameras;
-using HomeManagement.Application.Router;
-using HomeManagement.Application.WebHooks.Email;
-using HomeManagement.Application.WebHooks.Telegram;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,9 +34,8 @@ builder.Services.Configure<StaticAuthOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("TelegramSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
-// Cookie authentication only (no Identity)
-builder.Services
-    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+// Cookie authentication for Blazor UI + API key authentication for MCP
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
     {
         o.LoginPath = "/Account/Login";
@@ -43,9 +43,19 @@ builder.Services
         o.AccessDeniedPath = "/Account/Login";
         o.SlidingExpiration = true;
         o.ExpireTimeSpan = TimeSpan.FromHours(12);
-    });
+    })
+    .AddScheme<AuthenticationSchemeOptions, McpApiKeyAuthenticationHandler>(
+        McpApiKeyAuthenticationDefaults.AuthenticationScheme,
+        _ => { });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy(McpApiKeyAuthenticationDefaults.PolicyName, policy =>
+    {
+        policy.AuthenticationSchemes.Add(McpApiKeyAuthenticationDefaults.AuthenticationScheme);
+        policy.RequireAuthenticatedUser();
+    });
+});
 
 builder.Services.AddCascadingAuthenticationState();
 
@@ -104,6 +114,11 @@ builder.Services.ConfigureHttpJsonOptions(options => {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
+builder.Services.AddMcpServer()
+    .WithHttpTransport()
+    .AddAuthorizationFilters()
+    .WithTools<HomeManagementMcpTools>();
+    
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -156,6 +171,7 @@ app.UseAdminPanelUI(new AdminPanelUIOptions
     HlsUriPattern = "{streamPath}/output.m3u8"
 });
 
+app.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationDefaults.PolicyName);
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
