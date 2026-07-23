@@ -1,4 +1,3 @@
-using HomeManagement;
 using HomeManagement.Application.IpCameras;
 using HomeManagement.Application.Login;
 using HomeManagement.Application.Router;
@@ -77,14 +76,11 @@ builder.Services.AddLiveStreamingServer(
             configuration.FFmpegPath = ExecutableFinder.FindExecutableFromPATH("ffmpeg")!;
             configuration.FFmpegArguments =
                 "-i {inputPath} " +
-                "-c:v libx264 -preset ultrafast -tune zerolatency " +
-                "-b:v 290k -maxrate 290k -bufsize 580k " +
-                "-r 10 -g 20 -keyint_min 20 -sc_threshold 0 " +
-                "-force_key_frames \"expr:gte(t,n_forced*2)\" " +
-                "-pix_fmt yuv420p " +
-                "-c:a aac -b:a 32k " +
+                "-c:v copy " +
+                "-c:a copy " +
                 "-f mpegts {outputPath}";
-            configuration.OutputPathResolver = new LiveCameraOutputPathResolver(Path.Combine(Directory.GetCurrentDirectory(), "live-camera-archive"));
+            var outputDir = builder.Configuration.GetValue<string>("StreamProcessor:StoragePath") ?? Path.Combine(Directory.GetCurrentDirectory(), "live-camera-archive");
+            configuration.OutputPathResolver = new LiveCameraOutputPathResolver(outputDir);
         })
     )
 );

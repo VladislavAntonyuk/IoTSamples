@@ -1,6 +1,6 @@
 using LiveStreamingServerNet.StreamProcessor.Contracts;
 
-namespace HomeManagement;
+namespace HomeManagement.Application.IpCameras;
 
 public class ConfigurationStreamProcessorCondition : IStreamProcessorCondition
 {
