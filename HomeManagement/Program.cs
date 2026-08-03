@@ -32,6 +32,7 @@ builder.Services.AddRazorComponents()
 builder.Services.Configure<StaticAuthOptions>(builder.Configuration.GetSection("Auth"));
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("TelegramSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.Configure<InternetWatchdogOptions>(builder.Configuration.GetSection("InternetWatchdog"));
 
 // Cookie authentication for Blazor UI + API key authentication for MCP
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -78,7 +79,8 @@ builder.Services.AddLiveStreamingServer(
                 "-i {inputPath} " +
                 "-c:v copy " +
                 "-c:a copy " +
-                "-f mpegts {outputPath}";
+                "-movflags frag_keyframe+empty_moov+default_base_moof " +
+                "-f mp4 {outputPath}";
             var outputDir = builder.Configuration.GetValue<string>("StreamProcessor:StoragePath") ?? Path.Combine(Directory.GetCurrentDirectory(), "live-camera-archive");
             configuration.OutputPathResolver = new LiveCameraOutputPathResolver(outputDir);
         })
@@ -93,7 +95,7 @@ builder.Services.AddSingleton(_ => Channel.CreateBounded<WebHookModel>(new Bound
 {
     FullMode = BoundedChannelFullMode.Wait
 }));
-builder.Services.AddScoped<IRouterController, AsusRouterController>((sp) =>
+builder.Services.AddSingleton<IRouterController, AsusRouterController>((sp) =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
@@ -105,6 +107,7 @@ builder.Services.AddScoped<IRouterController, AsusRouterController>((sp) =>
 });
 
 builder.Services.AddHostedService<WebHookMessageProcessor>();
+builder.Services.AddHostedService<InternetWatchdogService>();
 
 builder.Services.ConfigureHttpJsonOptions(options => {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());

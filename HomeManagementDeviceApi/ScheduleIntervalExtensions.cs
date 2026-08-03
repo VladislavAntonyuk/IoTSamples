@@ -7,7 +7,7 @@ public static class ScheduleIntervalExtensions
 {
     extension(IScheduleInterval scheduleInterval)
     {
-        public IScheduledEventConfiguration AtSunrise(TimeZoneInfo timeZoneInfo, double latitude, double longitude)
+        public IScheduledEventConfiguration AtSunrise(TimeZoneInfo timeZoneInfo, double latitude, double longitude, int adjustmentMinutes = 0)
         {
             var lastRunDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
 
@@ -20,10 +20,12 @@ public static class ScheduleIntervalExtensions
 
                     var solarTimes = new SolarTimes(localNow.Date, latitude, longitude);
                     var localSunrise = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunrise.ToUniversalTime(), timeZoneInfo);
+                    var adjustment = TimeSpan.FromMinutes(adjustmentMinutes);
+                    var enableAt = localSunrise + adjustment;
 
-                    if (lastRunDate < localSunrise)
+                    if (lastRunDate < enableAt)
                     {
-                        lastRunDate = localSunrise;
+                        lastRunDate = enableAt;
                         return Task.FromResult(true);
                     }
 
@@ -31,7 +33,7 @@ public static class ScheduleIntervalExtensions
                 });
         }
 
-        public IScheduledEventConfiguration AtSunset(TimeZoneInfo timeZoneInfo, double latitude, double longitude)
+        public IScheduledEventConfiguration AtSunset(TimeZoneInfo timeZoneInfo, double latitude, double longitude, int adjustmentMinutes = 0)
         {
             var lastRunDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
 
@@ -44,10 +46,12 @@ public static class ScheduleIntervalExtensions
 
                     var solarTimes = new SolarTimes(localNow.Date, latitude, longitude);
                     var localSunset = TimeZoneInfo.ConvertTimeFromUtc(solarTimes.Sunset.ToUniversalTime(), timeZoneInfo);
+                    var adjustment = TimeSpan.FromMinutes(adjustmentMinutes);
+                    var enableAt = localSunset + adjustment;
 
-                    if (lastRunDate > localSunset)
+                    if (lastRunDate > enableAt)
                     {
-                        lastRunDate = localSunset;
+                        lastRunDate = enableAt;
                         return Task.FromResult(true);
                     }
 

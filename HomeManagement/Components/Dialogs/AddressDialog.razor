@@ -14,6 +14,10 @@
 
 				Add
 			</MudButton>
+			@if (!string.IsNullOrEmpty(_error))
+			{
+				<MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddAnyway">Add anyway</MudButton>
+			}
 		</MudStack>
 	</MudStack>
 </MudPaper>

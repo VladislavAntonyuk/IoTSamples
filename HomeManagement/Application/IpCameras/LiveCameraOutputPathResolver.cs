@@ -13,13 +13,13 @@ class LiveCameraOutputPathResolver(string outputDir) : IFFmpegOutputPathResolver
 
         DeleteOldFiles(streamDirectory);
 
-        return ValueTask.FromResult(Path.Combine(streamDirectory, $"output-{DateTime.UtcNow:yyyyMMddHHmmss}-{contextIdentifier}.ts"));
+        return ValueTask.FromResult(Path.Combine(streamDirectory, $"output-{DateTime.UtcNow:yyyyMMddHHmmss}-{contextIdentifier}.mp4"));
     }
 
     private static void DeleteOldFiles(string streamDirectory)
     {
         var threshold = DateTime.UtcNow - RetentionPeriod;
-        var files = Directory.EnumerateFiles(streamDirectory, "*.ts", SearchOption.AllDirectories)
+        var files = Directory.EnumerateFiles(streamDirectory, "*.mp4", SearchOption.AllDirectories)
             .Select(path => new FileInfo(path))
             .OrderBy(file => file.LastWriteTimeUtc)
             .ToList();

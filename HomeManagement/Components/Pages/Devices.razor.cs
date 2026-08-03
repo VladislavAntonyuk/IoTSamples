@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using System.Diagnostics;
+using System.Linq.Expressions;
 using System.Net.NetworkInformation;
 using System.Text;
+using Microsoft.EntityFrameworkCore.Query;
 using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
@@ -15,24 +17,43 @@ public partial class Devices(
     ISnackbar snackbar,
     IDbContextFactory<HomeManagementDbContext> dbContextFactory,
     IDialogService dialogService,
-    IHttpClientFactory httpClientFactory) : ComponentBase
+    IHttpClientFactory httpClientFactory) : ComponentBase, IAsyncDisposable
 {
+    private static readonly TimeSpan StatusRefreshInterval = TimeSpan.FromSeconds(10);
+
     private MudTable<Device> _table = null!;
     private readonly Dictionary<string, DeviceStatus> _statuses = new();
     private readonly HashSet<(string DeviceName, DeviceAction Action)> _runningActions = new();
+    private readonly CancellationTokenSource _statusRefreshCts = new();
+    private Task? _statusRefreshTask;
 
     private async Task<TableData<Device>> ServerReload(TableState state, CancellationToken token)
     {
         await using var dbContext = await dbContextFactory.CreateDbContextAsync(token);
-        var query = dbContext.Devices.Include(d => d.Actions).OrderBy(d => d.Name);
+        var query = dbContext.Devices.AsNoTracking().Include(d => d.Actions).AsQueryable();
 
         var totalItems = await query.CountAsync(token);
+        query = ApplySorting(query, state.SortLabel, state.SortDirection);
         var devices = await query.Skip(state.Page * state.PageSize).Take(state.PageSize).ToListAsync(token);
 
         // Start/refresh status fetch for current page devices
         _ = UpdateStatusesAsync(devices, token);
 
         return new TableData<Device>() { TotalItems = totalItems, Items = devices };
+    }
+
+    private static IQueryable<Device> ApplySorting(IQueryable<Device> query, string? sortLabel, SortDirection stateSortDirection)
+    {
+        Expression<Func<Device, object?>> keySelector = sortLabel switch
+        {
+            nameof(Device.Address) => c => c.Address,
+            nameof(Device.Name) => c => c.Name,
+            _ => c => c.Address
+        };
+
+        return stateSortDirection == SortDirection.Descending
+            ? query.OrderByDescending(keySelector)
+            : query.OrderBy(keySelector);
     }
 
     private async Task UpdateStatusesAsync(IEnumerable<Device> devices, CancellationToken token)
@@ -76,7 +97,7 @@ public partial class Devices(
                 else
                 {
                     using var ping = new Ping();
-                    var reply = await ping.SendPingAsync(device.Address, 250);
+                    var reply = await ping.SendPingAsync(device.Address, 100);
                     status.Online = reply.Status == IPStatus.Success;
                     status.UptimeSeconds = 0;
                     status.Temperature = 0;
@@ -95,6 +116,36 @@ public partial class Devices(
     }
 
     private DeviceStatus? GetStatus(string name) => _statuses.TryGetValue(name, out var st) ? st : null;
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _statusRefreshTask = RefreshStatusesPeriodicallyAsync(_statusRefreshCts.Token);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task RefreshStatusesPeriodicallyAsync(CancellationToken token)
+    {
+        using var timer = new PeriodicTimer(StatusRefreshInterval);
+
+        try
+        {
+            while (await timer.WaitForNextTickAsync(token))
+            {
+                if (_table.Items is not null)
+                {
+                    await InvokeAsync(() => UpdateStatusesAsync(_table.Items, token));
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when the component is disposed.
+        }
+    }
 
     private async Task RunAction(Device device, DeviceAction action)
     {
@@ -118,7 +169,7 @@ public partial class Devices(
                     CreateNoWindow = true
                 });
                 snackbar.Add(output.ExitStatus.ExitCode == 0 ? output.StandardOutput : output.StandardError,
-                    output.ExitStatus.ExitCode == 0 ? Severity.Success : Severity.Error, 
+                    output.ExitStatus.ExitCode == 0 ? Severity.Success : Severity.Error,
                     options => options.RequireInteraction = true);
             }
             else
@@ -316,6 +367,18 @@ public partial class Devices(
         {
             snackbar.Add($"Failed to delete device: {ex.Message}", Severity.Error);
         }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _statusRefreshCts.CancelAsync();
+
+        if (_statusRefreshTask is not null)
+        {
+            await _statusRefreshTask;
+        }
+
+        _statusRefreshCts.Dispose();
     }
 
     private class DeviceStatus

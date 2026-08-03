@@ -32,10 +32,10 @@ app.Services.UseScheduler(scheduler =>
         .PreventOverlapping("Monitor");
 
     scheduler.Schedule<StartServiceInvocable>()
-        .AtSunrise(tzInfo, latitude, longitude)
+        .AtSunrise(tzInfo, latitude, longitude, -30)
         .PreventOverlapping("StartServiceInvocable");
     scheduler.Schedule<StopServiceInvocable>()
-        .AtSunset(tzInfo, latitude, longitude)
+        .AtSunset(tzInfo, latitude, longitude, 30)
         .PreventOverlapping("StopServiceInvocable");
 });
 

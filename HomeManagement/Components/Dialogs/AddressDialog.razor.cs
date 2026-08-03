@@ -49,4 +49,20 @@ public partial class AddressDialog
     }
 
     private void Cancel() => DialogReference.Close(DialogResult.Cancel());
+
+    private void AddAnyway()
+    {
+        if (string.IsNullOrWhiteSpace(Address))
+        {
+            return;
+        }
+
+        var deviceName = Address.Trim();
+        var device = new NetworkDevice
+        {
+            Name = deviceName,
+            Address = deviceName
+        };
+        DialogReference.Close(DialogResult.Ok(device));
+    }
 }
