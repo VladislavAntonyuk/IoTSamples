@@ -23,9 +23,9 @@
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="11.0.0-preview.6.26359.118" />
-		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.0.0" />
-		<PackageReference Include="MudBlazor" Version="9.7.0" />
-		<PackageReference Include="Telegram.Bot" Version="22.10.2.1" />
+		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.1.0" />
+		<PackageReference Include="MudBlazor" Version="9.8.0" />
+		<PackageReference Include="Telegram.Bot" Version="22.10.2.2-dev.3" />
 	</ItemGroup>
 
 	<ItemGroup>

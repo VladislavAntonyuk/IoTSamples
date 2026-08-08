@@ -6,9 +6,9 @@ using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Text;
-using Microsoft.EntityFrameworkCore.Query;
 using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
@@ -93,15 +93,27 @@ public partial class Devices(
                 if (PhysicalAddress.TryParse(device.Address, out _))
                 {
                     status.Online = true;
+                    return;
                 }
-                else
+
+                if (Uri.TryCreate(device.Address, UriKind.Absolute, out var address))
                 {
+                    if (!IPAddress.TryParse(address.Host, out _))
+                    {
+                        status.Online = true;
+                        return;
+                    }
+
                     using var ping = new Ping();
-                    var reply = await ping.SendPingAsync(device.Address, 100);
+                    var reply = await ping.SendPingAsync(address.Host, 100);
                     status.Online = reply.Status == IPStatus.Success;
                     status.UptimeSeconds = 0;
                     status.Temperature = 0;
+                    return;
                 }
+
+                status.Online = false;
+                status.UptimeSeconds = 0;
             }
         }
         catch
@@ -135,9 +147,9 @@ public partial class Devices(
         {
             while (await timer.WaitForNextTickAsync(token))
             {
-                if (_table.Items is not null)
+                if (_table.FilteredItems is not null)
                 {
-                    await InvokeAsync(() => UpdateStatusesAsync(_table.Items, token));
+                    await InvokeAsync(() => UpdateStatusesAsync(_table.FilteredItems, token));
                 }
             }
         }
@@ -175,10 +187,15 @@ public partial class Devices(
             else
             {
                 using var httpClient = httpClientFactory.CreateClient();
-                httpClient.BaseAddress = new Uri($"http://{device.Address}");
+                httpClient.BaseAddress = new Uri(device.Address);
+                foreach (var config in device.Configurations)
+                {
+                    httpClient.DefaultRequestHeaders.Add(config.Name, config.Value);
+                }
+
                 var result = action.CommandType switch
                 {
-                    CommandType.Get => await httpClient.GetAsync($"{action.Command}?{action.CommandArgs}"),
+                    CommandType.Get => await httpClient.GetAsync(string.IsNullOrWhiteSpace(action.CommandArgs) ? action.Command : $"{action.Command}?{action.CommandArgs}"),
                     CommandType.Post => await httpClient.PostAsync(action.Command,
                         string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs, Encoding.Default, "application/json")),
                     _ => throw new ArgumentOutOfRangeException()
@@ -298,13 +315,18 @@ public partial class Devices(
             ["Model"] = new DeviceEditModel
             {
                 Name = device.Name,
-                Ip = device.Address,
+                Address = device.Address,
                 Actions = device.Actions.Select(a => new DeviceActionEditModel
                 {
                     Action = a.Action,
                     Command = a.Command,
                     CommandArgs = a.CommandArgs,
                     CommandType = a.CommandType
+                }).ToList(),
+                Configurations = device.Configurations.Select(c => new DeviceConfigurationEditModel
+                {
+                    Name = c.Name,
+                    Value = c.Value
                 }).ToList()
             }
         };
@@ -330,8 +352,10 @@ public partial class Devices(
             var replacement = new Device()
             {
                 Name = model.Name,
-                Address = model.Ip,
+                Address = model.Address,
                 Actions = model.Actions.Select(a => new DeviceAction(a.Action, a.CommandType, a.Command, a.CommandArgs))
+                    .ToList(),
+                Configurations = model.Configurations.Select(c => new DeviceConfiguration(c.Name, c.Value))
                     .ToList()
             };
             dbContext.Devices.Add(replacement);

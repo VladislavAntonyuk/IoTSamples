@@ -27,5 +27,16 @@ public class HomeManagementDbContext(DbContextOptions<HomeManagementDbContext> o
             a.Property<int>("Id").ValueGeneratedOnAdd();
             a.HasKey("Id");
         });
+
+        device.OwnsMany(d => d.Configurations, a =>
+        {
+            a.WithOwner().HasForeignKey("DeviceName");
+            a.ToTable("DeviceConfigurations");
+            a.Property(x => x.Name).HasMaxLength(50).IsRequired();
+            a.Property(x => x.Value).IsRequired();
+
+            a.Property<int>("Id").ValueGeneratedOnAdd();
+            a.HasKey("Id");
+        });
     }
 }

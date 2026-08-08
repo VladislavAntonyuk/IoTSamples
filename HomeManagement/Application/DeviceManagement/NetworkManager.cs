@@ -26,7 +26,7 @@ public class NetworkManager
         return results.OfType<NetworkDevice>().ToList();
     }
 
-    static async Task<NetworkDevice?> PingAndResolveAsync(string ip, int timeout, CancellationToken token)
+    private static async Task<NetworkDevice?> PingAndResolveAsync(string ip, int timeout, CancellationToken token)
     {
         using Ping ping = new();
         try
@@ -50,7 +50,7 @@ public class NetworkManager
         try
         {
             using var httpClient = new HttpClient();
-            return await httpClient.GetFromJsonAsync<NetworkDevice>($"http://{address}/info", JsonSerializerOptions, token);
+            return await httpClient.GetFromJsonAsync<NetworkDevice>($"{address}/info", JsonSerializerOptions, token);
         }
         catch (Exception)
         {

@@ -57,7 +57,7 @@
 			<div class="device-actions-container">
 				@foreach (var action in context.Actions)
 				{
-					var disabled = deviceStatus is null || deviceStatus.Loading || !deviceStatus.Online || _runningActions.Contains((context.Name, action));
+					var disabled = deviceStatus is null || !deviceStatus.Online || _runningActions.Contains((context.Name, action));
 					<MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" Disabled="@disabled" OnClick="@(() => RunAction(context, action))" Class="device-action-button">
 						@if (_runningActions.Contains((context.Name, action)))
 						{

@@ -48,7 +48,7 @@ public class HomeManagementMcpTools
         }
 
         using var httpClient = httpClientFactory.CreateClient();
-        httpClient.BaseAddress = new Uri($"http://{device.Address}");
+        httpClient.BaseAddress = new Uri(device.Address);
         var result = deviceAction.CommandType switch
         {
             CommandType.Get => await httpClient.GetAsync($"{deviceAction.Command}?{deviceAction.CommandArgs}", token),

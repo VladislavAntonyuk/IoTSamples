@@ -37,4 +37,16 @@ public partial class DeviceEditDialog
             Model.Actions.RemoveAt(index);
         }
     }
+    private void AddConfiguration()
+    {
+        Model.Configurations.Add(new DeviceConfigurationEditModel());
+    }
+
+    private void RemoveConfiguration(int index)
+    {
+        if (index >= 0 && index < Model.Configurations.Count)
+        {
+            Model.Configurations.RemoveAt(index);
+        }
+    }
 }
