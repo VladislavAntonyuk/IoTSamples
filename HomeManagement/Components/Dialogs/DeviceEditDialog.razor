@@ -4,6 +4,7 @@
     <MudForm @ref="_form">
         <MudTextField @bind-Value="Model.Name" Label="Name" Required="true" />
         <MudTextField @bind-Value="Model.Address" Label="Address" Required="true" />
+        <MudTextField @bind-Value="Model.Description" Label="Description" Lines="5" Required="false" />
 
         <MudDivider Class="my-2" />
         <MudText Typo="Typo.subtitle1">Actions</MudText>

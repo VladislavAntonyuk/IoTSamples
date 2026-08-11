@@ -96,24 +96,19 @@ public partial class Devices(
                     return;
                 }
 
-                if (Uri.TryCreate(device.Address, UriKind.Absolute, out var address))
+                if (Uri.TryCreate(device.Address, UriKind.Absolute, out var address) || IPAddress.TryParse(device.Address, out _))
                 {
-                    if (!IPAddress.TryParse(address.Host, out _))
-                    {
-                        status.Online = true;
-                        return;
-                    }
-
                     using var ping = new Ping();
-                    var reply = await ping.SendPingAsync(address.Host, 100);
+                    var reply = await ping.SendPingAsync(address is null ? device.Address : address.Host, 100);
                     status.Online = reply.Status == IPStatus.Success;
                     status.UptimeSeconds = 0;
                     status.Temperature = 0;
-                    return;
                 }
-
-                status.Online = false;
-                status.UptimeSeconds = 0;
+                else
+                {
+                    status.Online = false;
+                    status.UptimeSeconds = 0;
+                }
             }
         }
         catch
@@ -270,6 +265,11 @@ public partial class Devices(
             await using var dbContext = await dbContextFactory.CreateDbContextAsync();
             foreach (var device in devices)
             {
+                if (!device.Address.StartsWith("http"))
+                {
+                    device.Address = "http://" + device.Address;
+                }
+
                 dbContext.Devices.Add(device);
             }
 
@@ -296,6 +296,11 @@ public partial class Devices(
         try
         {
             await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+            if (device is NetworkDevice && !device.Address.StartsWith("http"))
+            {
+                device.Address = "http://" + device.Address;
+            }
+
             dbContext.Devices.Add(device);
             await dbContext.SaveChangesAsync();
 
@@ -316,6 +321,7 @@ public partial class Devices(
             {
                 Name = device.Name,
                 Address = device.Address,
+                Description = device.Description,
                 Actions = device.Actions.Select(a => new DeviceActionEditModel
                 {
                     Action = a.Action,
@@ -353,6 +359,7 @@ public partial class Devices(
             {
                 Name = model.Name,
                 Address = model.Address,
+                Description = model.Description,
                 Actions = model.Actions.Select(a => new DeviceAction(a.Action, a.CommandType, a.Command, a.CommandArgs))
                     .ToList(),
                 Configurations = model.Configurations.Select(c => new DeviceConfiguration(c.Name, c.Value))

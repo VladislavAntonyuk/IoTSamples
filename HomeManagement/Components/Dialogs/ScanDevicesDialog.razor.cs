@@ -4,7 +4,7 @@ using MudBlazor;
 
 namespace HomeManagement.Components.Dialogs;
 
-public partial class ScanDevicesDialog(ISnackbar snackbar)
+public partial class ScanDevicesDialog(ISnackbar snackbar) : ComponentBase
 {
     [CascadingParameter] private IMudDialogInstance DialogReference { get; set; } = default!;
     private List<SelectableDevice> _devices = new();
