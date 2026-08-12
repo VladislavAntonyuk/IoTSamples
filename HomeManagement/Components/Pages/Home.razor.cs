@@ -36,51 +36,145 @@ public partial class Home(
 
     private static async Task<string> GetUptime()
     {
-        var result = await Process.RunAndCaptureTextAsync("uptime",["-p"]);
-        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
+        var (_, output) = await RunCommandAsync("uptime", "-p");
+        return output;
     }
 
-    static async Task<string?> GetTemperature()
+    private static async Task<string> GetTemperature()
     {
+        var (isSuccess, output) = await RunCommandAsync(
+            "/bin/bash",
+            "-lc",
+            "paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp | awk '{print $1/1000 \"°C\"}')");
+
+        if (!isSuccess)
+        {
+            return output;
+        }
+
+        var lines = output
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split('\t', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length == 2)
+            .Select(parts => $"{parts[0]}: {parts[1]}")
+            .ToArray();
+
+        return lines.Length == 0 ? output : string.Join(Environment.NewLine, lines);
+    }
+
+    private async Task<string> GetDiskSpace()
+    {
+        var (isSuccess, output) = await RunCommandAsync("df", "-T", "-h", "-x", "tmpfs", "-x", "devtmpfs");
+        if (!isSuccess)
+        {
+            return output;
+        }
+
+        var lines = output.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (lines.Length <= 1)
+        {
+            return output;
+        }
+
+        var formatted = lines.Skip(1)
+            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length >= 7)
+            .Select(parts => $"{string.Join(' ', parts.Skip(6))}: {parts[3]}/{parts[2]} ({parts[5]}) [{parts[1]}]")
+            .ToArray();
+
+        return formatted.Length == 0 ? output : string.Join(Environment.NewLine, formatted);
+    }
+
+    private async Task<string> GetNetworkData()
+    {
+        var (isSuccess, output) = await RunCommandAsync("ip", "-brief", "address", "show");
+        if (!isSuccess)
+        {
+            return output;
+        }
+
+        var formatted = output
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length >= 2)
+            .Select(parts => $"{parts[0]}: {parts[1]} - {(parts.Length > 2 ? string.Join(' ', parts.Skip(2)) : "No address")}")
+            .ToArray();
+
+        return formatted.Length == 0 ? output : string.Join(Environment.NewLine, formatted);
+    }
+
+    private async Task<string> GetCpuInfo()
+    {
+        var (isSuccess, output) = await RunCommandAsync("lscpu");
+        if (!isSuccess)
+        {
+            return output;
+        }
+
+        var details = output
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => line.Split(':', 2, StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length == 2)
+            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
+
+        var cpuInfo = new[]
+        {
+            BuildInfoLine(details, "Model name", "Model"),
+            BuildInfoLine(details, "Architecture", "Architecture"),
+            BuildInfoLine(details, "CPU(s)", "Logical CPUs"),
+            BuildInfoLine(details, "Core(s) per socket", "Cores/socket"),
+            BuildInfoLine(details, "Thread(s) per core", "Threads/core"),
+            BuildInfoLine(details, "CPU max MHz", "Max MHz") ?? BuildInfoLine(details, "CPU MHz", "MHz")
+        }
+        .Where(line => !string.IsNullOrWhiteSpace(line))
+        .ToArray();
+
+        return cpuInfo.Length == 0 ? output : string.Join(Environment.NewLine, cpuInfo);
+    }
+
+    private static string? BuildInfoLine(IReadOnlyDictionary<string, string> details, string key, string label)
+    {
+        return details.TryGetValue(key, out var value) ? $"{label}: {value}" : null;
+    }
+
+    private static async Task<(bool IsSuccess, string Output)> RunCommandAsync(string fileName, params string[] arguments)
+    {
+        ArgumentNullException.ThrowIfNull(fileName);
+
         var startInfo = new ProcessStartInfo
         {
-            FileName = "/bin/bash",
+            FileName = fileName,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
 
-        startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add(
-            "paste <(cat /sys/class/thermal/thermal_zone*/type) <(cat /sys/class/thermal/thermal_zone*/temp | awk '{print $1/1000 \"°C\"}')");
+        foreach (var argument in arguments)
+        {
+            if (!string.IsNullOrWhiteSpace(argument))
+            {
+                startInfo.ArgumentList.Add(argument);
+            }
+        }
 
-        var result = await Process.RunAndCaptureTextAsync(startInfo);
-        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
-    }
-
-    private async Task<string> GetDiskSpace()
-    {
-        var result = await Process.RunAndCaptureTextAsync("df", ["-T", "-h"]);
-        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
-    }
-    private async Task<string> GetNetworkData()
-    {
-        var result = await Process.RunAndCaptureTextAsync("ip", ["-s addr show"]);
-        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
-    }
-
-    private async Task<string?> GetCpuInfo()
-    {
-        var result = await Process.RunAndCaptureTextAsync("cat", ["/proc/cpuinfo"]);
-        return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
+        try
+        {
+            var result = await Process.RunAndCaptureTextAsync(startInfo);
+            var output = result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
+            return (result.ExitStatus.ExitCode == 0, output.Trim());
+        }
+        catch (Exception e)
+        {
+            return (false, e.Message);
+        }
     }
 
     private void Reboot()
     {
         try
         {
-            Process.Start("reboot");
+            Process.StartAndForget("reboot");
             snackbar.Add("Rebooting...", Severity.Success);
         }
         catch (Exception e)
@@ -93,7 +187,7 @@ public partial class Home(
     {
         try
         {
-            Process.Start("poweroff");
+            Process.StartAndForget("poweroff");
             snackbar.Add("Shutting down...", Severity.Success);
         }
         catch (Exception e)
@@ -112,8 +206,8 @@ public partial class Home(
             return;
         }
 
-        var result = await Process.RunAndCaptureTextAsync("/bin/bash", [$"-l -c \"{_terminalCommand}\""]);
-        _terminalOutput = $"> {_terminalCommand}{Environment.NewLine}{result.StandardOutput}{(string.IsNullOrWhiteSpace(result.StandardError) ? "" : Environment.NewLine + result.StandardError)}";
+        var (_, output) = await RunCommandAsync("/bin/bash", "-lc", _terminalCommand);
+        _terminalOutput = $"> {_terminalCommand}{Environment.NewLine}{output}";
     }
 
     private async Task OnTerminalKeyDown(KeyboardEventArgs e)

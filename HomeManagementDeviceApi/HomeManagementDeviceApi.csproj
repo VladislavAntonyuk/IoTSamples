@@ -12,7 +12,6 @@
 
 	<ItemGroup>
 	  <PackageReference Include="Coravel" Version="6.0.2" />
-	  <PackageReference Include="SolarCalculator" Version="3.6.1" />
 	</ItemGroup>
 
 	<ItemGroup>

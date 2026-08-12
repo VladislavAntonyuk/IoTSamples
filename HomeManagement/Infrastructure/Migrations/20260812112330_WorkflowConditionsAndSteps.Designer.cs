@@ -3,6 +3,7 @@ using System;
 using HomeManagement.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,17 +11,14 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HomeManagement.Infrastructure.Migrations;
 
 [DbContext(typeof(HomeManagementDbContext))]
-partial class HomeManagementDbContextModelSnapshot : ModelSnapshot
+[Migration("20260812112330_WorkflowConditionsAndSteps")]
+partial class _20260812112330_WorkflowConditionsAndSteps
 {
-    // If you encounter a merge conflict in the line below, it means you need to
-    // discard one of the migration branches and recreate its migrations on top of
-    // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20260812115158_RemoveLegacyWorkflowFields";
-
-    protected override void BuildModel(ModelBuilder modelBuilder)
+    /// <inheritdoc />
+    protected override void BuildTargetModel(ModelBuilder modelBuilder)
     {
 #pragma warning disable 612, 618
-        modelBuilder.HasAnnotation("ProductVersion", "11.0.0-preview.7.26381.103");
+        modelBuilder.HasAnnotation("ProductVersion", "11.0.0-preview.6.26359.118");
 
         modelBuilder.Entity("HomeManagement.Shared.Device", b =>
             {
@@ -60,8 +58,46 @@ partial class HomeManagementDbContextModelSnapshot : ModelSnapshot
                 b.Property<bool?>("LastConditionMatched")
                     .HasColumnType("INTEGER");
 
+                b.Property<DateTime?>("LastTriggerDateLocal")
+                    .HasColumnType("TEXT");
+
                 b.Property<DateTimeOffset?>("LastTriggeredAtUtc")
                     .HasColumnType("TEXT");
+
+                b.Property<DateTimeOffset?>("ScheduledAt")
+                    .HasColumnType("TEXT");
+
+                b.Property<string>("TriggerDeviceName")
+                    .HasMaxLength(100)
+                    .HasColumnType("TEXT");
+
+                b.Property<string>("TriggerExpectedValue")
+                    .HasMaxLength(500)
+                    .HasColumnType("TEXT");
+
+                b.Property<string>("TriggerMetric")
+                    .HasMaxLength(200)
+                    .HasColumnType("TEXT");
+
+                b.Property<int?>("TriggerOperator")
+                    .HasColumnType("INTEGER");
+
+                b.Property<string>("TriggerPropertyPath")
+                    .HasMaxLength(200)
+                    .HasColumnType("TEXT");
+
+                b.Property<string>("TriggerSourceActionName")
+                    .HasMaxLength(100)
+                    .HasColumnType("TEXT");
+
+                b.Property<int>("TriggerType")
+                    .HasColumnType("INTEGER");
+
+                b.Property<double?>("TriggerValue")
+                    .HasColumnType("REAL");
+
+                b.Property<int?>("TriggerValueType")
+                    .HasColumnType("INTEGER");
 
                 b.HasKey("Name");
 
@@ -141,6 +177,36 @@ partial class HomeManagementDbContextModelSnapshot : ModelSnapshot
 
         modelBuilder.Entity("HomeManagement.Shared.Workflow", b =>
             {
+                b.OwnsMany("HomeManagement.Shared.WorkflowAction", "Actions", b1 =>
+                    {
+                        b1.Property<int>("Id")
+                            .ValueGeneratedOnAdd()
+                            .HasColumnType("INTEGER");
+
+                        b1.Property<string>("ActionName")
+                            .IsRequired()
+                            .HasMaxLength(100)
+                            .HasColumnType("TEXT");
+
+                        b1.Property<string>("DeviceName")
+                            .IsRequired()
+                            .HasMaxLength(100)
+                            .HasColumnType("TEXT");
+
+                        b1.Property<string>("WorkflowName")
+                            .IsRequired()
+                            .HasColumnType("TEXT");
+
+                        b1.HasKey("Id");
+
+                        b1.HasIndex("WorkflowName");
+
+                        b1.ToTable("WorkflowActions");
+
+                        b1.WithOwner()
+                            .HasForeignKey("WorkflowName");
+                    });
+
                 b.OwnsMany("HomeManagement.Shared.WorkflowStep", "Steps", b1 =>
                     {
                         b1.Property<int>("Id")
@@ -209,6 +275,10 @@ partial class HomeManagementDbContextModelSnapshot : ModelSnapshot
                             .HasMaxLength(500)
                             .HasColumnType("TEXT");
 
+                        b1.Property<string>("TriggerMetric")
+                            .HasMaxLength(200)
+                            .HasColumnType("TEXT");
+
                         b1.Property<int?>("TriggerOperator")
                             .HasColumnType("INTEGER");
 
@@ -222,6 +292,9 @@ partial class HomeManagementDbContextModelSnapshot : ModelSnapshot
 
                         b1.Property<int>("TriggerType")
                             .HasColumnType("INTEGER");
+
+                        b1.Property<double?>("TriggerValue")
+                            .HasColumnType("REAL");
 
                         b1.Property<int?>("TriggerValueType")
                             .HasColumnType("INTEGER");
@@ -239,6 +312,8 @@ partial class HomeManagementDbContextModelSnapshot : ModelSnapshot
                         b1.WithOwner()
                             .HasForeignKey("WorkflowName");
                     });
+
+                b.Navigation("Actions");
 
                 b.Navigation("Steps");
 

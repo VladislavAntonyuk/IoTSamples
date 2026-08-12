@@ -364,3 +364,4 @@ FodyWeavers.xsd
 /.idea/
 
 home_management.db*
+/HomeManagement/appsettings.Development.json

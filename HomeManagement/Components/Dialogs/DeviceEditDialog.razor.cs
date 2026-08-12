@@ -5,6 +5,8 @@ namespace HomeManagement.Components.Dialogs;
 
 public partial class DeviceEditDialog
 {
+    [Inject] private IDialogService DialogService { get; set; } = default!;
+
     [CascadingParameter] private IMudDialogInstance DialogReference { get; set; } = default!;
     [Parameter] public DeviceEditModel Model { get; set; } = new();
     private MudForm _form = default!;
@@ -30,23 +32,49 @@ public partial class DeviceEditDialog
         Model.Actions.Add(new DeviceActionEditModel());
     }
 
-    private void RemoveAction(int index)
+    private async Task RemoveAction(int index)
     {
-        if (index >= 0 && index < Model.Actions.Count)
+        if (index < 0 || index >= Model.Actions.Count)
         {
-            Model.Actions.RemoveAt(index);
+            return;
         }
+
+        if (!await ConfirmDeleteAsync("action"))
+        {
+            return;
+        }
+
+        Model.Actions.RemoveAt(index);
     }
+
     private void AddConfiguration()
     {
         Model.Configurations.Add(new DeviceConfigurationEditModel());
     }
 
-    private void RemoveConfiguration(int index)
+    private async Task RemoveConfiguration(int index)
     {
-        if (index >= 0 && index < Model.Configurations.Count)
+        if (index < 0 || index >= Model.Configurations.Count)
         {
-            Model.Configurations.RemoveAt(index);
+            return;
         }
+
+        if (!await ConfirmDeleteAsync("configuration"))
+        {
+            return;
+        }
+
+        Model.Configurations.RemoveAt(index);
+    }
+
+    private async Task<bool> ConfirmDeleteAsync(string itemName)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Message"] = $"Are you sure you want to delete this {itemName}?"
+        };
+        var dialog = await DialogService.ShowAsync<ConfirmationDialog>("Confirm delete", parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
     }
 }

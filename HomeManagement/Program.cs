@@ -2,6 +2,7 @@ using HomeManagement.Application.IpCameras;
 using HomeManagement.Application.Login;
 using HomeManagement.Application.Router;
 using HomeManagement.Application.WebHooks;
+using HomeManagement.Application.Workflows;
 using HomeManagement.Application.WebHooks.Email;
 using HomeManagement.Application.WebHooks.Telegram;
 using HomeManagement.Components;
@@ -21,11 +22,13 @@ using MudBlazor.Services;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
+using Microsoft.AspNetCore.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContextFactory<HomeManagementDbContext>(options => options.UseSqlite("Data Source=home_management.db"));
 builder.Services.AddMudServices();
+builder.Services.AddHybridCache();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -33,6 +36,7 @@ builder.Services.Configure<StaticAuthOptions>(builder.Configuration.GetSection("
 builder.Services.Configure<TelegramSettings>(builder.Configuration.GetSection("TelegramSettings"));
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.Configure<InternetWatchdogOptions>(builder.Configuration.GetSection("InternetWatchdog"));
+builder.Services.Configure<WorkflowAutomationOptions>(builder.Configuration.GetSection("WorkflowAutomation"));
 
 // Cookie authentication for Blazor UI + API key authentication for MCP
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -88,6 +92,9 @@ builder.Services.AddLiveStreamingServer(
 );
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
+builder.Services.AddSingleton<HomeManagement.Application.DeviceManagement.IDeviceActionExecutor, HomeManagement.Application.DeviceManagement.DeviceActionExecutor>();
+builder.Services.AddSingleton<IWorkflowRunner, WorkflowRunner>();
+builder.Services.AddSingleton<IWorkflowTriggerPreviewService, WorkflowTriggerPreviewService>();
 builder.Services.AddScoped<ISender, TelegramSender>();
 builder.Services.AddScoped<ISender, EmailSender>();
 builder.Services.AddSingleton<SenderRequestFactory>();
@@ -108,6 +115,7 @@ builder.Services.AddSingleton<IRouterController, AsusRouterController>((sp) =>
 
 builder.Services.AddHostedService<WebHookMessageProcessor>();
 builder.Services.AddHostedService<InternetWatchdogService>();
+builder.Services.AddHostedService<WorkflowTriggerService>();
 
 builder.Services.ConfigureHttpJsonOptions(options => {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
@@ -172,6 +180,10 @@ app.UseAdminPanelUI(new AdminPanelUIOptions
 
 app.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationDefaults.PolicyName);
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    .WithBrowserOptions(options =>
+    {
+        options.AddAutoPause();
+    });
 
 await app.RunAsync();

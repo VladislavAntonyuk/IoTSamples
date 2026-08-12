@@ -6,23 +6,15 @@ using System.Diagnostics;
 using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddQueue();
 builder.Services.AddScheduler();
 
 builder.Services.AddHttpClient<MonitorInvocable>();
 builder.Services.AddTransient<MonitorInvocable>();
-builder.Services.AddTransient<StartServiceInvocable>();
-builder.Services.AddTransient<StopServiceInvocable>();
 builder.Services.Configure<CommandsSettings>(builder.Configuration.GetSection("CommandsSettings"));
 
 var app = builder.Build();
 
 app.UseHttpsRedirection();
-
-double latitude = 48.4647;
-double longitude = 35.0462;
-string timeZoneId = "Europe/Kyiv";
-var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
 
 app.Services.UseScheduler(scheduler =>
 {
@@ -30,13 +22,6 @@ app.Services.UseScheduler(scheduler =>
         .EveryFiveMinutes()
         .RunOnceAtStart()
         .PreventOverlapping("Monitor");
-
-    scheduler.Schedule<StartServiceInvocable>()
-        .AtSunrise(tzInfo, latitude, longitude, -30)
-        .PreventOverlapping("StartServiceInvocable");
-    scheduler.Schedule<StopServiceInvocable>()
-        .AtSunset(tzInfo, latitude, longitude, 30)
-        .PreventOverlapping("StopServiceInvocable");
 });
 
 app.MapGet("/info", (IConfiguration configuration, IOptions<CommandsSettings> commandsOptions) =>
@@ -58,20 +43,35 @@ app.MapGet("/info", (IConfiguration configuration, IOptions<CommandsSettings> co
         Temperature = DeviceManager.GetTemperature()
     };
 });
-app.MapPost("/command", async (Command command) =>
+app.MapPost("/command", async (Command command, CancellationToken token) =>
 {
-    var result = await Process.RunAndCaptureTextAsync(command.FileName, command.Arguments.ToList());
+    if (string.IsNullOrWhiteSpace(command.FileName))
+    {
+        return "Command file name is required.";
+    }
+
+    var arguments = string.Join(' ', command.Arguments);
+    var result = await Process.RunAndCaptureTextAsync(new ProcessStartInfo
+    {
+        FileName = command.FileName,
+        Arguments = arguments,
+        RedirectStandardOutput = true,
+        RedirectStandardError = true,
+        UseShellExecute = false,
+        CreateNoWindow = true
+    }, token);
+
     return result.ExitStatus.ExitCode == 0 ? result.StandardOutput : result.StandardError;
 });
 
 app.MapPost("/shutdown", () =>
 {
-    Process.Start("poweroff");
+    Process.StartAndForget("poweroff");
 });
 
 app.MapPost("/restart", () =>
 {
-    Process.Start("reboot");
+    Process.StartAndForget("reboot");
 });
 
 app.Run();

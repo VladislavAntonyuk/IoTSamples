@@ -1,14 +1,13 @@
-﻿using HomeManagement.Components.Dialogs;
+﻿using HomeManagement.Application.DeviceManagement;
+using HomeManagement.Components.Dialogs;
 using HomeManagement.Infrastructure;
 using HomeManagement.Shared;
 using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
-using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Net;
 using System.Net.NetworkInformation;
-using System.Text;
 using NetworkManager = HomeManagement.Application.DeviceManagement.NetworkManager;
 
 namespace HomeManagement.Components.Pages;
@@ -17,7 +16,7 @@ public partial class Devices(
     ISnackbar snackbar,
     IDbContextFactory<HomeManagementDbContext> dbContextFactory,
     IDialogService dialogService,
-    IHttpClientFactory httpClientFactory) : ComponentBase, IAsyncDisposable
+    IDeviceActionExecutor deviceActionExecutor) : ComponentBase, IAsyncDisposable
 {
     private static readonly TimeSpan StatusRefreshInterval = TimeSpan.FromSeconds(10);
 
@@ -164,52 +163,10 @@ public partial class Devices(
 
         try
         {
-            if (PhysicalAddress.TryParse(device.Address, out _))
-            {
-                var output = await Process.RunAndCaptureTextAsync(new ProcessStartInfo
-                {
-                    FileName = "/home/vladislav/.local/bin/bluetti-read",
-                    Arguments = $"-m {device.Address} -t {device.Name} -e true",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                });
-                snackbar.Add(output.ExitStatus.ExitCode == 0 ? output.StandardOutput : output.StandardError,
-                    output.ExitStatus.ExitCode == 0 ? Severity.Success : Severity.Error,
-                    options => options.RequireInteraction = true);
-            }
-            else
-            {
-                using var httpClient = httpClientFactory.CreateClient();
-                httpClient.BaseAddress = new Uri(device.Address);
-                foreach (var config in device.Configurations)
-                {
-                    httpClient.DefaultRequestHeaders.Add(config.Name, config.Value);
-                }
-
-                var result = action.CommandType switch
-                {
-                    CommandType.Get => await httpClient.GetAsync(string.IsNullOrWhiteSpace(action.CommandArgs) ? action.Command : $"{action.Command}?{action.CommandArgs}"),
-                    CommandType.Post => await httpClient.PostAsync(action.Command,
-                        string.IsNullOrWhiteSpace(action.CommandArgs) ? null : new StringContent(action.CommandArgs, Encoding.Default, "application/json")),
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-
-                var content = await result.Content.ReadAsStringAsync();
-                if (string.IsNullOrEmpty(content))
-                {
-                    content = result.IsSuccessStatusCode
-                        ? $"{action.Action} successfully executed"
-                        : "Error has occured";
-                }
-                snackbar.Add(content,
-                    result.IsSuccessStatusCode ? Severity.Success : Severity.Error, options => options.RequireInteraction = true);
-            }
-        }
-        catch (Exception ex)
-        {
-            snackbar.Add(ex.Message, Severity.Error, options => options.RequireInteraction = true);
+            var result = await deviceActionExecutor.ExecuteAsync(device, action);
+            snackbar.Add(result.Message,
+                result.IsSuccess ? Severity.Success : Severity.Error,
+                options => options.RequireInteraction = true);
         }
         finally
         {
@@ -336,7 +293,14 @@ public partial class Devices(
                 }).ToList()
             }
         };
-        var dialog = await dialogService.ShowAsync<DeviceEditDialog>($"Edit {device.Name}", parameters);
+        var options = new DialogOptions()
+        {
+            BackdropClick = false,
+            FullWidth = true,
+            MaxWidth = MaxWidth.ExtraExtraLarge,
+            Position = DialogPosition.Center
+        };
+        var dialog = await dialogService.ShowAsync<DeviceEditDialog>($"Edit {device.Name}", parameters, options);
         var result = await dialog.Result;
         if (result is null || result.Canceled)
         {
@@ -379,6 +343,11 @@ public partial class Devices(
 
     private async Task Delete(Device device)
     {
+        if (!await ConfirmDeleteDeviceAsync(device.Name))
+        {
+            return;
+        }
+
         try
         {
             await using var dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -398,6 +367,17 @@ public partial class Devices(
         {
             snackbar.Add($"Failed to delete device: {ex.Message}", Severity.Error);
         }
+    }
+
+    private async Task<bool> ConfirmDeleteDeviceAsync(string deviceName)
+    {
+        var parameters = new DialogParameters
+        {
+            ["Message"] = $"Are you sure you want to delete '{deviceName}'?"
+        };
+        var dialog = await dialogService.ShowAsync<ConfirmationDialog>("Delete device", parameters);
+        var result = await dialog.Result;
+        return result is not null && !result.Canceled;
     }
 
     public async ValueTask DisposeAsync()
