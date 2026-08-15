@@ -22,8 +22,8 @@ public class DeviceActionExecutor(IHttpClientFactory httpClientFactory) : IDevic
             {
                 var output = await Process.RunAndCaptureTextAsync(new ProcessStartInfo
                 {
-                    FileName = "/home/vladislav/.local/bin/bluetti-read",
-                    Arguments = $"-m {device.Address} -t {device.Name} -e true",
+                    FileName = action.Command,
+                    Arguments = action.CommandArgs,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,

@@ -4,13 +4,16 @@ sudo nano /lib/systemd/system/home-management.service
 
 [Unit]
 Description=Home Management
-Requires=media-vladislav-MyPassport.mount
-After=network.target media-vladislav-MyPassport.mount
+Requires=media-orangepi-MyPassport.mount
+After=network.target media-orangepi-MyPassport.mount
 
 [Service]
+User=orangepi
+Group=orangepi
+AmbientCapabilities=CAP_NET_BIND_SERVICE
 Type=idle
-WorkingDirectory=/home/vladislav/Projects/HomeManagement/
-ExecStart=/home/vladislav/.dotnet/dotnet /home/vladislav/Projects/HomeManagement/HomeManagement.dll --urls http://+:80
+WorkingDirectory=/home/orangepi/Projects/HomeManagement/
+ExecStart=/home/orangepi/.dotnet/dotnet /home/orangepi/Projects/HomeManagement/HomeManagement.dll --urls http://+:80
 Restart=on-failure
 
 [Install]

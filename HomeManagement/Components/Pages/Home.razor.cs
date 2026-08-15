@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace HomeManagement.Components.Pages;
 
@@ -115,16 +116,23 @@ public partial class Home(
             .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(line => line.Split(':', 2, StringSplitOptions.TrimEntries))
             .Where(parts => parts.Length == 2)
-            .ToDictionary(parts => parts[0], parts => parts[1], StringComparer.OrdinalIgnoreCase);
+            .GroupBy(parts => parts[0], StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .Select(parts => parts[1])
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray(),
+                StringComparer.OrdinalIgnoreCase);
 
         var cpuInfo = new[]
         {
-            BuildInfoLine(details, "Model name", "Model"),
+            BuildInfoLine(details, "Model name", "Model", includeAllValues: true),
             BuildInfoLine(details, "Architecture", "Architecture"),
             BuildInfoLine(details, "CPU(s)", "Logical CPUs"),
             BuildInfoLine(details, "Core(s) per socket", "Cores/socket"),
             BuildInfoLine(details, "Thread(s) per core", "Threads/core"),
-            BuildInfoLine(details, "CPU max MHz", "Max MHz") ?? BuildInfoLine(details, "CPU MHz", "MHz")
         }
         .Where(line => !string.IsNullOrWhiteSpace(line))
         .ToArray();
@@ -132,9 +140,15 @@ public partial class Home(
         return cpuInfo.Length == 0 ? output : string.Join(Environment.NewLine, cpuInfo);
     }
 
-    private static string? BuildInfoLine(IReadOnlyDictionary<string, string> details, string key, string label)
+    private static string? BuildInfoLine(IReadOnlyDictionary<string, string[]> details, string key, string label, bool includeAllValues = false)
     {
-        return details.TryGetValue(key, out var value) ? $"{label}: {value}" : null;
+        if (!details.TryGetValue(key, out var values) || values.Length == 0)
+        {
+            return null;
+        }
+
+        var value = includeAllValues ? string.Join(", ", values) : values[0];
+        return $"{label}: {value}";
     }
 
     private static async Task<(bool IsSuccess, string Output)> RunCommandAsync(string fileName, params string[] arguments)
