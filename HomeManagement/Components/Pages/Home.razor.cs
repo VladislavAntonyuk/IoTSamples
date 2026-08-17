@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor;
 using System.Diagnostics;
-using System.Globalization;
 
 namespace HomeManagement.Components.Pages;
 
@@ -22,6 +21,7 @@ public partial class Home(
     private string? _diskSpace;
     private string? _networkData;
     private string? _cpuInfo;
+    private string? _ramInfo;
 
     protected override async Task OnInitializedAsync()
     {
@@ -31,6 +31,7 @@ public partial class Home(
         _diskSpace = await GetDiskSpace();
         _networkData = await GetNetworkData();
         _cpuInfo = await GetCpuInfo();
+        _ramInfo = await GetRamInfo();
         await using var db = await dbContextFactory.CreateDbContextAsync();
         _totalDevices = await db.Devices.CountAsync();
     }
@@ -99,6 +100,50 @@ public partial class Home(
             .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .Where(parts => parts.Length >= 2)
             .Select(parts => $"{parts[0]}: {parts[1]} - {(parts.Length > 2 ? string.Join(' ', parts.Skip(2)) : "No address")}")
+            .ToArray();
+
+        return formatted.Length == 0 ? output : string.Join(Environment.NewLine, formatted);
+    }
+
+    private async Task<string> GetRamInfo()
+    {
+        var (isSuccess, output) = await RunCommandAsync("free", "-h");
+        if (!isSuccess)
+        {
+            return output;
+        }
+
+        var lines = output
+            .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (lines.Length <= 1)
+        {
+            return output;
+        }
+
+        var headers = lines[0]
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (headers.Length == 0)
+        {
+            return output;
+        }
+
+        var formatted = lines.Skip(1)
+            .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            .Where(parts => parts.Length >= 2)
+            .Select(parts =>
+            {
+                var label = parts[0].TrimEnd(':');
+                var values = parts.Skip(1).ToArray();
+                var metrics = headers
+                    .Zip(values, (header, value) => $"{header}: {value}")
+                    .ToArray();
+
+                return metrics.Length == 0
+                    ? string.Join(' ', parts)
+                    : $"{label}: {string.Join(", ", metrics)}";
+            })
             .ToArray();
 
         return formatted.Length == 0 ? output : string.Join(Environment.NewLine, formatted);
