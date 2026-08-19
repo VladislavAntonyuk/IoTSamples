@@ -6,7 +6,7 @@
 	</AuthorizeView>
 
 	<MudNavLink Href="/" Match="NavLinkMatch.All">Home</MudNavLink>
-	<MudNavLink Href="/ip-cameras" Match="NavLinkMatch.Prefix" Target="_blank">IP Cameras</MudNavLink>
+	<MudNavLink Href="@($"{new Uri(navigationManager.BaseUri).Host}:5000")" Match="NavLinkMatch.Prefix" Target="_blank">IP Cameras</MudNavLink>
 	<MudNavLink Href="/devices" Match="NavLinkMatch.Prefix">Devices</MudNavLink>
 	<MudNavLink Href="/workflows" Match="NavLinkMatch.Prefix">Workflows</MudNavLink>
 

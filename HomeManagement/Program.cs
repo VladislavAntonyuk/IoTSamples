@@ -1,4 +1,3 @@
-using HomeManagement.Application.IpCameras;
 using HomeManagement.Application.Login;
 using HomeManagement.Application.Router;
 using HomeManagement.Application.WebHooks;
@@ -8,13 +7,7 @@ using HomeManagement.Application.WebHooks.Telegram;
 using HomeManagement.Components;
 using HomeManagement.Infrastructure;
 using LiveStreamingServerNet;
-using LiveStreamingServerNet.AdminPanelUI;
 using LiveStreamingServerNet.Flv.Installer;
-using LiveStreamingServerNet.Standalone;
-using LiveStreamingServerNet.Standalone.Installer;
-using LiveStreamingServerNet.StreamProcessor.AspNetCore.Installer;
-using LiveStreamingServerNet.StreamProcessor.Installer;
-using LiveStreamingServerNet.StreamProcessor.Utilities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +16,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Components;
+using HomeManagement.Infrastructure.IpCameras;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,28 +61,7 @@ builder.Services.AddLiveStreamingServer(
     new IPEndPoint(IPAddress.Any, 1935),
     options => options
     .AddAuthorizationHandler<StreamAuthorizationHandler>()
-    .AddStandaloneServices()
     .AddFlv()
-    .AddStreamProcessor()
-    .AddHlsTransmuxer(hlsTransmuxerConfigurator => hlsTransmuxerConfigurator.Configure(config =>
-        config.Condition = new HlsTransmuxingCondition()
-    ))
-    .AddFFmpeg(configure =>
-        configure.ConfigureDefault(configuration =>
-        {
-            configuration.Condition = new ConfigurationStreamProcessorCondition();
-            configuration.Name = "live-camera-archive";
-            configuration.FFmpegPath = ExecutableFinder.FindExecutableFromPATH("ffmpeg")!;
-            configuration.FFmpegArguments =
-                "-i {inputPath} " +
-                "-c:v copy " +
-                "-c:a copy " +
-                "-movflags frag_keyframe+empty_moov+default_base_moof " +
-                "-f mp4 {outputPath}";
-            var outputDir = builder.Configuration.GetValue<string>("StreamProcessor:StoragePath") ?? Path.Combine(Directory.GetCurrentDirectory(), "live-camera-archive");
-            configuration.OutputPathResolver = new LiveCameraOutputPathResolver(outputDir);
-        })
-    )
 );
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
@@ -152,31 +125,8 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
-app.UseWhen(c => c.Request.Path.StartsWithSegments("/ip-cameras"), branch =>
-{
-    branch.Use(async (ctx, next) =>
-    {
-        if (!(ctx.User.Identity?.IsAuthenticated ?? false))
-        {
-            var returnUrl = Uri.EscapeDataString(ctx.Request.Path + ctx.Request.QueryString);
-            ctx.Response.Redirect($"/Account/Login?returnUrl={returnUrl}");
-            return;
-        }
-        await next();
-    });
-});
 
 app.UseHttpFlv();
-app.UseHlsFiles();
-app.MapStandaloneServerApiEndPoints();
-app.UseAdminPanelUI(new AdminPanelUIOptions
-{
-    BasePath = "/ip-cameras",
-    HasHttpFlvPreview = true,
-    HasHlsPreview = true,
-    HttpFlvUriPattern = "{streamPath}.flv",
-    HlsUriPattern = "{streamPath}/output.m3u8"
-});
 
 app.MapMcp("/mcp").RequireAuthorization(McpApiKeyAuthenticationDefaults.PolicyName);
 app.MapRazorComponents<App>()

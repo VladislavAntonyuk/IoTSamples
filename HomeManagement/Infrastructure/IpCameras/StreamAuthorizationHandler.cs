@@ -4,7 +4,7 @@ using LiveStreamingServerNet.Rtmp.Server.Auth;
 using LiveStreamingServerNet.Rtmp.Server.Auth.Contracts;
 using Microsoft.Extensions.Options;
 
-namespace HomeManagement.Application.IpCameras;
+namespace HomeManagement.Infrastructure.IpCameras;
 
 public class StreamAuthorizationHandler(IHttpContextAccessor httpContextAccessor, IOptions<StaticAuthOptions> authOptions) : IAuthorizationHandler
 {
@@ -29,6 +29,11 @@ public class StreamAuthorizationHandler(IHttpContextAccessor httpContextAccessor
         string streamPath,
         IReadOnlyDictionary<string, string> streamArguments)
     {
+        if (streamArguments.TryGetValue("password", out var password) && authOptions.Value.Key == password)
+        {
+            return Task.FromResult(AuthorizationResult.Authorized());
+        }
+
         if (httpContextAccessor.HttpContext?.User.Identity?.IsAuthenticated == true)
         {
             return Task.FromResult(AuthorizationResult.Authorized());
