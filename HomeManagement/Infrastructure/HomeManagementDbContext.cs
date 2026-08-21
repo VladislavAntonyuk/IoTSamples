@@ -7,6 +7,7 @@ public class HomeManagementDbContext(DbContextOptions<HomeManagementDbContext> o
 {
     public DbSet<Device> Devices => Set<Device>();
     public DbSet<Workflow> Workflows => Set<Workflow>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -77,6 +78,11 @@ public class HomeManagementDbContext(DbContextOptions<HomeManagementDbContext> o
             s.HasKey("Id");
         });
 
-
+        var appSetting = modelBuilder.Entity<AppSetting>();
+        appSetting.ToTable("AppSettings");
+        appSetting.HasKey(x => x.Name);
+        appSetting.Property(x => x.Name).HasMaxLength(100).IsRequired();
+        appSetting.Property(x => x.Value).HasMaxLength(2000).IsRequired();
+        appSetting.Property(x => x.ValueType).IsRequired();
     }
 }

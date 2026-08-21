@@ -1,17 +1,20 @@
 using HomeManagement.Shared;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
 namespace HomeManagement.Infrastructure.IpCameras;
 
-public sealed class FrigateEventsSubscriber(Channel<WebHookModel> channel, ILogger<FrigateEventsSubscriber> logger)
+public sealed class FrigateEventsSubscriber(
+    Channel<WebHookModel> channel,
+    ILogger<FrigateEventsSubscriber> logger,
+    IDbContextFactory<HomeManagementDbContext> dbContextFactory)
 {
     private readonly ConcurrentDictionary<string, DateTime> _seenEvents = new();
 
     public async Task OnFrigateEventAsync(FrigateEventMessage message)
     {
-        logger.LogInformation("Received Frigate event: {MessageType}", message.Type);
-        if (message.Type is not ("new" or "update"))
+        if (message.Type is not "new")
         {
             return;
         }
@@ -19,6 +22,18 @@ public sealed class FrigateEventsSubscriber(Channel<WebHookModel> channel, ILogg
         var after = message.After;
         if (after is null || after.Label != "person" || string.IsNullOrEmpty(after.Id))
         {
+            return;
+        }
+
+        await using var dbContext = await dbContextFactory.CreateDbContextAsync();
+        var awayModeSetting = await dbContext.AppSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Name == AppSettingKeys.AwayModeEnabled);
+
+        var isAwayModeEnabled = awayModeSetting?.TryGetBoolean(out var awayModeEnabled) == true && awayModeEnabled;
+        if (!isAwayModeEnabled)
+        {
+            logger.LogInformation("Skipping Frigate event because away mode is disabled.");
             return;
         }
 

@@ -22,6 +22,8 @@ public partial class Home(
     private string? _networkData;
     private string? _cpuInfo;
     private string? _ramInfo;
+    private bool _isAwayModeEnabled;
+    private bool _isUpdatingAwayMode;
 
     protected override async Task OnInitializedAsync()
     {
@@ -34,6 +36,11 @@ public partial class Home(
         _ramInfo = await GetRamInfo();
         await using var db = await dbContextFactory.CreateDbContextAsync();
         _totalDevices = await db.Devices.CountAsync();
+        var awayModeSetting = await db.AppSettings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Name == AppSettingKeys.AwayModeEnabled);
+
+        _isAwayModeEnabled = awayModeSetting?.TryGetBoolean(out var isAwayModeEnabled) == true && isAwayModeEnabled;
     }
 
     private static async Task<string> GetUptime()
@@ -274,6 +281,43 @@ public partial class Home(
         if (e.Key == "Enter")
         {
             await RunTerminalCommand();
+        }
+    }
+
+    private async Task OnAwayModeChanged(bool isEnabled)
+    {
+        _isUpdatingAwayMode = true;
+
+        try
+        {
+            await using var db = await dbContextFactory.CreateDbContextAsync();
+            var existing = await db.AppSettings.FirstOrDefaultAsync(x => x.Name == AppSettingKeys.AwayModeEnabled);
+            if (existing is null)
+            {
+                db.AppSettings.Add(new AppSetting
+                {
+                    Name = AppSettingKeys.AwayModeEnabled,
+                    ValueType = AppSettingValueType.Boolean,
+                    Value = isEnabled ? bool.TrueString : bool.FalseString
+                });
+            }
+            else
+            {
+                existing.SetBoolean(isEnabled);
+                db.AppSettings.Update(existing);
+            }
+
+            await db.SaveChangesAsync();
+            _isAwayModeEnabled = isEnabled;
+            snackbar.Add($"Away mode {(isEnabled ? "enabled" : "disabled")}.", Severity.Success);
+        }
+        catch (DbUpdateException e)
+        {
+            snackbar.Add($"Error updating away mode: {e.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isUpdatingAwayMode = false;
         }
     }
 
