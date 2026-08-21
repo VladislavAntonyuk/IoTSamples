@@ -2,6 +2,7 @@ using HomeManagement.Application.Login;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Threading.Channels;
+using HomeManagement.Shared;
 
 namespace HomeManagement.Application.WebHooks;
 

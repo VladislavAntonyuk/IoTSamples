@@ -1,26 +1,32 @@
 using HomeManagement.Application.Login;
 using HomeManagement.Application.Router;
 using HomeManagement.Application.WebHooks;
-using HomeManagement.Application.Workflows;
 using HomeManagement.Application.WebHooks.Email;
 using HomeManagement.Application.WebHooks.Telegram;
+using HomeManagement.Application.Workflows;
 using HomeManagement.Components;
 using HomeManagement.Infrastructure;
+using HomeManagement.Infrastructure.IpCameras;
 using LiveStreamingServerNet;
 using LiveStreamingServerNet.Flv.Installer;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Components;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
+using Silverback.Configuration;
+using Silverback.Messaging.Configuration;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Channels;
-using Microsoft.AspNetCore.Components;
-using HomeManagement.Infrastructure.IpCameras;
+using HomeManagement.Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContextFactory<HomeManagementDbContext>(options => options.UseSqlite("Data Source=home_management.db"));
+builder.Services.AddDbContextFactory<HomeManagementDbContext>(options => options
+    .UseSqlite("Data Source=home_management.db", o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution));
+
 builder.Services.AddMudServices();
 builder.Services.AddHybridCache();
 builder.Services.AddRazorComponents()
@@ -32,6 +38,12 @@ builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Emai
 builder.Services.Configure<InternetWatchdogOptions>(builder.Configuration.GetSection("InternetWatchdog"));
 builder.Services.Configure<WorkflowAutomationOptions>(builder.Configuration.GetSection("WorkflowAutomation"));
 
+builder.Services.AddServiceDiscovery();
+
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
+    .AddServiceDiscoveryDestinationResolver();
+
 // Cookie authentication for Blazor UI + API key authentication for MCP
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
@@ -41,6 +53,36 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         o.AccessDeniedPath = "/Account/Login";
         o.SlidingExpiration = true;
         o.ExpireTimeSpan = TimeSpan.FromHours(12);
+
+        o.Cookie.Name = "HomeManagement_Auth";
+        // Allows the session cookie to be valid for both home-management.local and cameras.home-management.local
+        o.Cookie.Domain = ".home-management.local";
+        o.Cookie.HttpOnly = true;
+        o.Cookie.SameSite = SameSiteMode.Lax;
+
+        o.Events.OnRedirectToLogin = context =>
+        {
+            // If it is an API request, return 401 Unauthorized instead of redirecting
+            if (context.Request.Path.StartsWithSegments("/api") ||
+                context.Request.Headers.Accept.ToString().Contains("application/json"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            // Redirect to the main host login page if challenged on a subdomain
+            if (!context.Request.Host.Host.Equals("home-management.local", StringComparison.OrdinalIgnoreCase))
+            {
+                var returnUrl = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}";
+                var loginUri = $"{context.Request.Scheme}://home-management.local/Account/Login?ReturnUrl={Uri.EscapeDataString(returnUrl)}";
+
+                context.Response.Redirect(loginUri);
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
     })
     .AddScheme<AuthenticationSchemeOptions, McpApiKeyAuthenticationHandler>(
         McpApiKeyAuthenticationDefaults.AuthenticationScheme,
@@ -90,7 +132,14 @@ builder.Services.AddHostedService<WebHookMessageProcessor>();
 builder.Services.AddHostedService<InternetWatchdogService>();
 builder.Services.AddHostedService<WorkflowTriggerService>();
 
-builder.Services.ConfigureHttpJsonOptions(options => {
+builder.Services.AddSingleton<FrigateEventsSubscriber>();
+builder.Services.AddSilverback()
+    .WithConnectionToMessageBroker(options => options.AddMqtt().ConnectAfterStartup().RetryOnConnectionFailure())
+    .AddBrokerClientsConfigurator<BrokerClientsConfigurator>()
+    .AddDelegateSubscriber((FrigateEventMessage message, FrigateEventsSubscriber subscriber) => subscriber.OnFrigateEventAsync(message));
+
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
@@ -98,7 +147,7 @@ builder.Services.AddMcpServer()
     .WithHttpTransport()
     .AddAuthorizationFilters()
     .WithTools<HomeManagementMcpTools>();
-    
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -134,6 +183,9 @@ app.MapRazorComponents<App>()
     .WithBrowserOptions(options =>
     {
         options.AddAutoPause();
-    });
+    })
+    .RequireHost("home-management.local");
+
+app.MapReverseProxy();
 
 await app.RunAsync();

@@ -1,4 +1,4 @@
-namespace HomeManagement.Application.WebHooks;
+namespace HomeManagement.Shared;
 
 public class WebHookModel
 {

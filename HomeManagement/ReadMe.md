@@ -37,3 +37,32 @@ rm -r Projects/HomeManagement
 
 
 scp -r "./" vladislav@raspberrypi-5.local:/home/vladislav/Projects/HomeManagement
+
+
+
+
+On Windows only:
+Add-Content -Path "$env:windir\System32\drivers\etc\hosts" -Value "`n192.168.50.151  cameras.home-management.local"
+
+
+on orangepi
+sudo apt update && sudo apt install -y avahi-utils
+sudo tee /etc/systemd/system/avahi-cameras.service > /dev/null << 'EOF'
+[Unit]
+Description=Publish cameras.home-management.local mDNS record
+After=avahi-daemon.service
+Requires=avahi-daemon.service
+
+[Service]
+Type=simple
+ExecStart=/bin/bash -c 'exec avahi-publish-address -R cameras.home-management.local $(hostname -I | awk "{print \$1}")'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart avahi-cameras.service
+sudo systemctl enable avahi-cameras.service

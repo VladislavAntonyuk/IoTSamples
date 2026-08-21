@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using HomeManagement.Shared;
 
 namespace HomeManagement.Application.WebHooks;
 

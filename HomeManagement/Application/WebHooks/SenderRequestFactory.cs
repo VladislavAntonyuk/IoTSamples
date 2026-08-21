@@ -1,5 +1,6 @@
 using HomeManagement.Application.WebHooks.Email;
 using HomeManagement.Application.WebHooks.Telegram;
+using HomeManagement.Shared;
 
 namespace HomeManagement.Application.WebHooks;
 
